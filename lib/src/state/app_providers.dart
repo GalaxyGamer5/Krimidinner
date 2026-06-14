@@ -249,6 +249,8 @@ class MysteryController extends Notifier<MysteryState> {
       messages: [
         _systemMessage('Lobby $code wurde eroeffnet. Einladungslink bereit.'),
       ],
+      evidences: const [],
+      votes: const [],
       revealedHintIds: const [],
       phaseIndex: 0,
       hasStarted: false,
@@ -615,6 +617,7 @@ class MysteryController extends Notifier<MysteryState> {
       ],
     );
     updatedLobby = _applyPhaseHints(updatedLobby, mysteryCase);
+    updatedLobby = _appendPhaseEvidence(updatedLobby, mysteryCase);
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
@@ -692,6 +695,9 @@ class MysteryController extends Notifier<MysteryState> {
       players: lobby.players.where((entry) => entry.id != playerId).toList(),
       invitations: updatedInvitations,
       roleAssignments: updatedAssignments,
+      votes: lobby.votes
+          .where((vote) => vote.voterPlayerId != playerId)
+          .toList(),
       messages: [
         ...lobby.messages,
         _systemMessage('${player.name} wurde aus der Lobby entfernt.'),
@@ -708,6 +714,8 @@ class MysteryController extends Notifier<MysteryState> {
     required String code,
     required String sender,
     required String body,
+    String? recipientPlayerId,
+    String? recipientPlayerName,
   }) {
     final message = body.trim();
     if (message.isEmpty) {
@@ -720,6 +728,8 @@ class MysteryController extends Notifier<MysteryState> {
     }
 
     final lobby = state.lobbies[lobbyIndex];
+    final isDirect =
+        recipientPlayerId != null && recipientPlayerId.trim().isNotEmpty;
     final updatedLobby = lobby.copyWith(
       messages: [
         ...lobby.messages,
@@ -728,7 +738,10 @@ class MysteryController extends Notifier<MysteryState> {
           sender: sender,
           body: message,
           createdAt: DateTime.now(),
-          type: ChatMessageType.lobby,
+          type: isDirect ? ChatMessageType.direct : ChatMessageType.lobby,
+          recipientPlayerId: isDirect ? recipientPlayerId.trim() : null,
+          recipientPlayerName:
+              isDirect ? recipientPlayerName?.trim() : null,
         ),
       ],
     );
@@ -736,6 +749,108 @@ class MysteryController extends Notifier<MysteryState> {
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
     _updateState(state.copyWith(lobbies: updatedLobbies));
+  }
+
+  String? toggleMessageReaction({
+    required String code,
+    required String messageId,
+    required String playerId,
+    required String playerName,
+    required String emoji,
+  }) {
+    final lobbyIndex = _indexOfLobby(code);
+    if (lobbyIndex == -1) {
+      return 'Lobby nicht gefunden.';
+    }
+
+    final lobby = state.lobbies[lobbyIndex];
+    final messageIndex =
+        lobby.messages.indexWhere((message) => message.id == messageId);
+    if (messageIndex == -1) {
+      return 'Nachricht nicht gefunden.';
+    }
+
+    final message = lobby.messages[messageIndex];
+    if (message.type == ChatMessageType.system) {
+      return null;
+    }
+
+    final reactions = [...message.reactions];
+    final existingIndex = reactions.indexWhere(
+      (reaction) =>
+          reaction.playerId == playerId && reaction.emoji == emoji,
+    );
+
+    if (existingIndex >= 0) {
+      reactions.removeAt(existingIndex);
+    } else {
+      reactions.add(
+        ChatReaction(
+          playerId: playerId,
+          playerName: playerName,
+          emoji: emoji,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
+
+    final updatedMessages = [...lobby.messages];
+    updatedMessages[messageIndex] = message.copyWith(reactions: reactions);
+
+    final updatedLobbies = [...state.lobbies];
+    updatedLobbies[lobbyIndex] = lobby.copyWith(messages: updatedMessages);
+    _updateState(state.copyWith(lobbies: updatedLobbies));
+    return null;
+  }
+
+  String? castVote({
+    required String code,
+    required String voterPlayerId,
+    required String suspectRoleId,
+  }) {
+    final lobbyIndex = _indexOfLobby(code);
+    if (lobbyIndex == -1) {
+      return 'Lobby nicht gefunden.';
+    }
+
+    final lobby = state.lobbies[lobbyIndex];
+    final mysteryCase = findMysteryCaseById(lobby.caseId);
+    if (mysteryCase == null) {
+      return 'Der zugehoerige Fall fehlt.';
+    }
+
+    final voterExists =
+        lobby.players.any((player) => player.id == voterPlayerId);
+    if (!voterExists) {
+      return 'Spieler nicht gefunden.';
+    }
+
+    final roleExists =
+        mysteryCase.roles.any((role) => role.id == suspectRoleId);
+    if (!roleExists) {
+      return 'Diese Rolle ist nicht Teil des Falls.';
+    }
+
+    final updatedVotes = [...lobby.votes];
+    final existingIndex = updatedVotes.indexWhere(
+      (vote) => vote.voterPlayerId == voterPlayerId,
+    );
+    final nextVote = SuspectVote(
+      voterPlayerId: voterPlayerId,
+      suspectRoleId: suspectRoleId,
+      createdAt: DateTime.now(),
+    );
+
+    if (existingIndex >= 0) {
+      updatedVotes[existingIndex] = nextVote;
+    } else {
+      updatedVotes.add(nextVote);
+    }
+
+    final updatedLobbies = [...state.lobbies];
+    updatedLobbies[lobbyIndex] = lobby.copyWith(votes: updatedVotes);
+    _updateState(state.copyWith(lobbies: updatedLobbies));
+    return null;
   }
 
   int _indexOfLobby(String code) {
@@ -845,6 +960,50 @@ class MysteryController extends Notifier<MysteryState> {
 
     return lobby.copyWith(
       revealedHintIds: revealed.toList(),
+    );
+  }
+
+  LobbySession _appendPhaseEvidence(
+    LobbySession lobby,
+    MysteryCase mysteryCase,
+  ) {
+    final phase = mysteryCase.phases[lobby.phaseIndex];
+    const evidencePhases = {'conversation', 'clues', 'intel', 'accusation'};
+    if (!evidencePhases.contains(phase.id)) {
+      return lobby;
+    }
+
+    final evidenceId = 'brief_${lobby.code}_${phase.id}';
+    final alreadyExists =
+        lobby.evidences.any((evidence) => evidence.id == evidenceId);
+    if (alreadyExists) {
+      return lobby;
+    }
+
+    final evidence = GameEvidence(
+      id: evidenceId,
+      title: 'Versiegelter Brief',
+      description:
+          'Ein neuer Brief wurde zur Phase "${phase.title}" ausgelegt. Hier kann spaeter der eigentliche Hinweistext dieses Falls stehen.',
+      assetPath: 'brief.png',
+      unlockedInPhase: lobby.phaseIndex,
+      unlockedAt: DateTime.now(),
+    );
+
+    return lobby.copyWith(
+      evidences: [...lobby.evidences, evidence],
+      messages: [
+        ...lobby.messages,
+        ChatMessage(
+          id: _uuid.v4(),
+          sender: 'Spielbrett',
+          body:
+              'Ein versiegelter Brief wurde fuer alle Spieler ausgelegt. Tippe ihn an, um ihn zu oeffnen.',
+          createdAt: DateTime.now(),
+          type: ChatMessageType.evidence,
+          evidenceId: evidence.id,
+        ),
+      ],
     );
   }
 
@@ -1012,6 +1171,8 @@ class MysteryController extends Notifier<MysteryState> {
       'invitations': lobby.invitations.map(_serializeInvitation).toList(),
       'roleAssignments': lobby.roleAssignments,
       'messages': lobby.messages.map(_serializeMessage).toList(),
+      'evidences': lobby.evidences.map(_serializeEvidence).toList(),
+      'votes': lobby.votes.map(_serializeVote).toList(),
       'revealedHintIds': lobby.revealedHintIds,
       'phaseIndex': lobby.phaseIndex,
       'hasStarted': lobby.hasStarted,
@@ -1049,6 +1210,38 @@ class MysteryController extends Notifier<MysteryState> {
       'body': message.body,
       'createdAt': message.createdAt.toIso8601String(),
       'type': message.type.name,
+      'recipientPlayerId': message.recipientPlayerId,
+      'recipientPlayerName': message.recipientPlayerName,
+      'evidenceId': message.evidenceId,
+      'reactions': message.reactions.map(_serializeReaction).toList(),
+    };
+  }
+
+  Map<String, dynamic> _serializeReaction(ChatReaction reaction) {
+    return {
+      'playerId': reaction.playerId,
+      'playerName': reaction.playerName,
+      'emoji': reaction.emoji,
+      'createdAt': reaction.createdAt.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _serializeEvidence(GameEvidence evidence) {
+    return {
+      'id': evidence.id,
+      'title': evidence.title,
+      'description': evidence.description,
+      'assetPath': evidence.assetPath,
+      'unlockedInPhase': evidence.unlockedInPhase,
+      'unlockedAt': evidence.unlockedAt.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _serializeVote(SuspectVote vote) {
+    return {
+      'voterPlayerId': vote.voterPlayerId,
+      'suspectRoleId': vote.suspectRoleId,
+      'createdAt': vote.createdAt.toIso8601String(),
     };
   }
 
@@ -1094,6 +1287,14 @@ class MysteryController extends Notifier<MysteryState> {
         .map(_deserializeMessage)
         .whereType<ChatMessage>()
         .toList();
+    final evidences = (rawLobby['evidences'] as List<dynamic>? ?? const [])
+        .map(_deserializeEvidence)
+        .whereType<GameEvidence>()
+        .toList();
+    final votes = (rawLobby['votes'] as List<dynamic>? ?? const [])
+        .map(_deserializeVote)
+        .whereType<SuspectVote>()
+        .toList();
 
     final roleAssignments = <String, String>{};
     final rawAssignments = rawLobby['roleAssignments'];
@@ -1120,6 +1321,8 @@ class MysteryController extends Notifier<MysteryState> {
       invitations: invitations,
       roleAssignments: roleAssignments,
       messages: messages,
+      evidences: evidences,
+      votes: votes,
       revealedHintIds: revealedHintIds,
       phaseIndex: (rawLobby['phaseIndex'] as num?)?.toInt() ?? 0,
       hasStarted: rawLobby['hasStarted'] as bool? ?? false,
@@ -1212,6 +1415,89 @@ class MysteryController extends Notifier<MysteryState> {
       body: body,
       createdAt: createdAt,
       type: type,
+      recipientPlayerId: rawMessage['recipientPlayerId'] as String?,
+      recipientPlayerName: rawMessage['recipientPlayerName'] as String?,
+      evidenceId: rawMessage['evidenceId'] as String?,
+      reactions: (rawMessage['reactions'] as List<dynamic>? ?? const [])
+          .map(_deserializeReaction)
+          .whereType<ChatReaction>()
+          .toList(),
+    );
+  }
+
+  ChatReaction? _deserializeReaction(dynamic rawReaction) {
+    if (rawReaction is! Map) {
+      return null;
+    }
+
+    final playerId = rawReaction['playerId'];
+    final playerName = rawReaction['playerName'];
+    final emoji = rawReaction['emoji'];
+    final createdAt =
+        DateTime.tryParse(rawReaction['createdAt'] as String? ?? '');
+    if (playerId is! String ||
+        playerName is! String ||
+        emoji is! String ||
+        createdAt == null) {
+      return null;
+    }
+
+    return ChatReaction(
+      playerId: playerId,
+      playerName: playerName,
+      emoji: emoji,
+      createdAt: createdAt,
+    );
+  }
+
+  GameEvidence? _deserializeEvidence(dynamic rawEvidence) {
+    if (rawEvidence is! Map) {
+      return null;
+    }
+
+    final id = rawEvidence['id'];
+    final title = rawEvidence['title'];
+    final description = rawEvidence['description'];
+    final assetPath = rawEvidence['assetPath'];
+    final unlockedAt =
+        DateTime.tryParse(rawEvidence['unlockedAt'] as String? ?? '');
+    if (id is! String ||
+        title is! String ||
+        description is! String ||
+        assetPath is! String ||
+        unlockedAt == null) {
+      return null;
+    }
+
+    return GameEvidence(
+      id: id,
+      title: title,
+      description: description,
+      assetPath: assetPath,
+      unlockedInPhase: (rawEvidence['unlockedInPhase'] as num?)?.toInt() ?? 0,
+      unlockedAt: unlockedAt,
+    );
+  }
+
+  SuspectVote? _deserializeVote(dynamic rawVote) {
+    if (rawVote is! Map) {
+      return null;
+    }
+
+    final voterPlayerId = rawVote['voterPlayerId'];
+    final suspectRoleId = rawVote['suspectRoleId'];
+    final createdAt =
+        DateTime.tryParse(rawVote['createdAt'] as String? ?? '');
+    if (voterPlayerId is! String ||
+        suspectRoleId is! String ||
+        createdAt == null) {
+      return null;
+    }
+
+    return SuspectVote(
+      voterPlayerId: voterPlayerId,
+      suspectRoleId: suspectRoleId,
+      createdAt: createdAt,
     );
   }
 

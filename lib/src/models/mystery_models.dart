@@ -284,9 +284,56 @@ class LobbyPlayer {
   }
 }
 
-enum ChatMessageType { lobby, system, role }
+enum ChatMessageType { lobby, system, role, direct, evidence }
 
 enum LobbyInvitationStatus { pending, accepted, revoked }
+
+@immutable
+class ChatReaction {
+  const ChatReaction({
+    required this.playerId,
+    required this.playerName,
+    required this.emoji,
+    required this.createdAt,
+  });
+
+  final String playerId;
+  final String playerName;
+  final String emoji;
+  final DateTime createdAt;
+}
+
+@immutable
+class GameEvidence {
+  const GameEvidence({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.assetPath,
+    required this.unlockedInPhase,
+    required this.unlockedAt,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final String assetPath;
+  final int unlockedInPhase;
+  final DateTime unlockedAt;
+}
+
+@immutable
+class SuspectVote {
+  const SuspectVote({
+    required this.voterPlayerId,
+    required this.suspectRoleId,
+    required this.createdAt,
+  });
+
+  final String voterPlayerId;
+  final String suspectRoleId;
+  final DateTime createdAt;
+}
 
 @immutable
 class ChatMessage {
@@ -296,6 +343,10 @@ class ChatMessage {
     required this.body,
     required this.createdAt,
     required this.type,
+    this.recipientPlayerId,
+    this.recipientPlayerName,
+    this.evidenceId,
+    this.reactions = const [],
   });
 
   final String id;
@@ -303,6 +354,41 @@ class ChatMessage {
   final String body;
   final DateTime createdAt;
   final ChatMessageType type;
+  final String? recipientPlayerId;
+  final String? recipientPlayerName;
+  final String? evidenceId;
+  final List<ChatReaction> reactions;
+
+  ChatMessage copyWith({
+    String? id,
+    String? sender,
+    String? body,
+    DateTime? createdAt,
+    ChatMessageType? type,
+    String? recipientPlayerId,
+    String? recipientPlayerName,
+    String? evidenceId,
+    List<ChatReaction>? reactions,
+    bool clearRecipientPlayerId = false,
+    bool clearRecipientPlayerName = false,
+    bool clearEvidenceId = false,
+  }) {
+    return ChatMessage(
+      id: id ?? this.id,
+      sender: sender ?? this.sender,
+      body: body ?? this.body,
+      createdAt: createdAt ?? this.createdAt,
+      type: type ?? this.type,
+      recipientPlayerId: clearRecipientPlayerId
+          ? null
+          : recipientPlayerId ?? this.recipientPlayerId,
+      recipientPlayerName: clearRecipientPlayerName
+          ? null
+          : recipientPlayerName ?? this.recipientPlayerName,
+      evidenceId: clearEvidenceId ? null : evidenceId ?? this.evidenceId,
+      reactions: reactions ?? this.reactions,
+    );
+  }
 }
 
 @immutable
@@ -362,6 +448,8 @@ class LobbySession {
     required this.invitations,
     required this.roleAssignments,
     required this.messages,
+    required this.evidences,
+    required this.votes,
     required this.revealedHintIds,
     required this.phaseIndex,
     required this.hasStarted,
@@ -378,6 +466,8 @@ class LobbySession {
   final List<LobbyInvitation> invitations;
   final Map<String, String> roleAssignments;
   final List<ChatMessage> messages;
+  final List<GameEvidence> evidences;
+  final List<SuspectVote> votes;
   final List<String> revealedHintIds;
   final int phaseIndex;
   final bool hasStarted;
@@ -394,6 +484,8 @@ class LobbySession {
     List<LobbyInvitation>? invitations,
     Map<String, String>? roleAssignments,
     List<ChatMessage>? messages,
+    List<GameEvidence>? evidences,
+    List<SuspectVote>? votes,
     List<String>? revealedHintIds,
     int? phaseIndex,
     bool? hasStarted,
@@ -411,6 +503,8 @@ class LobbySession {
       invitations: invitations ?? this.invitations,
       roleAssignments: roleAssignments ?? this.roleAssignments,
       messages: messages ?? this.messages,
+      evidences: evidences ?? this.evidences,
+      votes: votes ?? this.votes,
       revealedHintIds: revealedHintIds ?? this.revealedHintIds,
       phaseIndex: phaseIndex ?? this.phaseIndex,
       hasStarted: hasStarted ?? this.hasStarted,
