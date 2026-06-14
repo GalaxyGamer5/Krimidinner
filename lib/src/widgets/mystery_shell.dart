@@ -1,11 +1,13 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../theme/app_theme.dart';
+import '../state/app_providers.dart';
 
-class MysteryShell extends StatelessWidget {
+class MysteryShell extends ConsumerWidget {
   const MysteryShell({
     super.key,
     required this.location,
@@ -26,11 +28,31 @@ class MysteryShell extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(mysteryControllerProvider);
+    final hasActiveLobby = state.lobbies.isNotEmpty;
+
+    final visibleDestinations = _destinations.where((dest) {
+      if (!hasActiveLobby) {
+        return dest.path == '/hub' || dest.path == '/account';
+      }
+      return true;
+    }).toList();
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 1080;
-        final selectedIndex = _selectedIndex();
+        
+        final selectedIndex = visibleDestinations.indexWhere((dest) {
+          if (dest.path == '/hub' && location == '/hub') return true;
+          if (dest.path == '/cases' && location.startsWith('/cases')) return true;
+          if (dest.path == '/lobbies' && (location.startsWith('/lobbies') || location.startsWith('/invite'))) return true;
+          if (dest.path == '/roles' && location.startsWith('/roles')) return true;
+          if (dest.path == '/account' && location.startsWith('/account')) return true;
+          return false;
+        });
+        final index = selectedIndex == -1 ? 0 : selectedIndex;
+
         final title = _pageTitle();
 
         return Scaffold(
@@ -43,11 +65,11 @@ class MysteryShell extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
                     child: NavigationBar(
-                      selectedIndex: selectedIndex,
-                      onDestinationSelected: (index) {
-                        context.go(_destinations[index].path);
+                      selectedIndex: index,
+                      onDestinationSelected: (idx) {
+                        context.go(visibleDestinations[idx].path);
                       },
-                      destinations: _destinations
+                      destinations: visibleDestinations
                           .map(
                             (item) => NavigationDestination(
                               icon: Icon(item.icon),
@@ -78,8 +100,8 @@ class MysteryShell extends StatelessWidget {
                             ? Row(
                                 children: [
                                   _RailPanel(
-                                    destinations: _destinations,
-                                    selectedIndex: selectedIndex,
+                                    destinations: visibleDestinations,
+                                    selectedIndex: index,
                                   ),
                                   const SizedBox(width: 20),
                                   Expanded(
@@ -98,25 +120,6 @@ class MysteryShell extends StatelessWidget {
         );
       },
     );
-  }
-
-  int _selectedIndex() {
-    if (location.startsWith('/cases')) {
-      return 1;
-    }
-    if (location.startsWith('/lobbies')) {
-      return 2;
-    }
-    if (location.startsWith('/invite')) {
-      return 2;
-    }
-    if (location.startsWith('/roles')) {
-      return 3;
-    }
-    if (location.startsWith('/account')) {
-      return 4;
-    }
-    return 0;
   }
 
   String _pageTitle() {

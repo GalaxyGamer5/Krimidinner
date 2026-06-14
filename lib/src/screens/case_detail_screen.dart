@@ -33,7 +33,7 @@ class CaseDetailScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => context.go('/cases'),
-                child: const Text('Zurück zum Archiv'),
+                child: const Text('Zurueck zum Archiv'),
               ),
             ],
           ),
@@ -69,8 +69,14 @@ class CaseDetailScreen extends ConsumerWidget {
                       accent: Colors.white,
                     ),
                     InfoPill(
-                      label: mysteryCase.difficulty.label,
-                      icon: Icons.auto_graph_rounded,
+                      label:
+                          '${mysteryCase.playerMin}-${mysteryCase.playerMax} Spieler',
+                      icon: Icons.groups_rounded,
+                      accent: Colors.white,
+                    ),
+                    InfoPill(
+                      label: '${mysteryCase.durationMinutes} Min',
+                      icon: Icons.schedule_rounded,
                       accent: Colors.white,
                     ),
                   ],
@@ -91,26 +97,10 @@ class CaseDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  mysteryCase.description,
+                  'Waehle zuerst den Fall. Die eigentlichen Rollenakten, Geheimnisse und persoenlichen Hinweise werden erst spaeter ueber die Einladungen sichtbar.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppPalette.parchment.withOpacity(0.94),
                       ),
-                ),
-                const SizedBox(height: 24),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    _MetricBadge(
-                        label: '${mysteryCase.durationMinutes} Minuten'),
-                    _MetricBadge(
-                      label:
-                          '${mysteryCase.playerMin}-${mysteryCase.playerMax} Spieler',
-                    ),
-                    _MetricBadge(
-                        label: 'Empfohlen ab ${mysteryCase.recommendedAge}'),
-                    _MetricBadge(label: mysteryCase.atmosphere),
-                  ],
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
@@ -130,232 +120,66 @@ class CaseDetailScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          TwoColumnLayout(
-            primary: [
-              SectionPanel(
-                title: 'Spielprofil',
-                subtitle:
-                    'Diese Akte ist für elegante Rollenrunden mit klarer Dramaturgie und starken Geheimnissen gebaut.',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          SectionPanel(
+            title: 'Worum geht es?',
+            subtitle:
+                'Hier bleibt es absichtlich kompakt: nur die Szene und der grobe Rahmen.',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  mysteryCase.description,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
-                    Text(
-                      mysteryCase.atmosphere,
-                      style: Theme.of(context).textTheme.titleMedium,
+                    _MetricBadge(
+                      label:
+                          '${mysteryCase.playerMin}-${mysteryCase.playerMax} Spieler',
                     ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: mysteryCase.materials
-                          .map((item) => InfoPill(label: item))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    ...mysteryCase.highlights.map(
-                      (highlight) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 4),
-                              child: Icon(
-                                Icons.circle,
-                                size: 8,
-                                color: AppPalette.gold,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(highlight)),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _MetricBadge(label: '${mysteryCase.durationMinutes} Minuten'),
+                    _MetricBadge(label: mysteryCase.atmosphere),
                   ],
                 ),
-              ),
-              SectionPanel(
-                title: 'Rollen-Vorschau',
-                subtitle:
-                    'Im Spiel sieht jeder nur die eigene Akte. Hier im Archiv bekommst du eine spoilerarme Kurzübersicht.',
-                child: Column(
-                  children: mysteryCase.roles
-                      .map(
-                        (role) => Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: Colors.white.withOpacity(0.04),
-                          ),
+                if (mysteryCase.highlights.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  ...mysteryCase.highlights.take(3).map(
+                        (highlight) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundColor:
-                                    AppPalette.gold.withOpacity(0.18),
-                                child: Text(
-                                  role.avatar,
-                                  style: const TextStyle(
-                                    color: AppPalette.gold,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                              const Padding(
+                                padding: EdgeInsets.only(top: 4),
+                                child: Icon(
+                                  Icons.circle,
+                                  size: 8,
+                                  color: AppPalette.gold,
                                 ),
                               ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      role.name,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Text(role.persona),
-                                    const SizedBox(height: 10),
-                                    Wrap(
-                                      spacing: 10,
-                                      runSpacing: 10,
-                                      children: [
-                                        InfoPill(
-                                          label: role.outfit.budget.label,
-                                          icon: Icons.checkroom_rounded,
-                                        ),
-                                        InfoPill(
-                                          label:
-                                              role.outfit.palette.join(' / '),
-                                          icon: Icons.palette_outlined,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ],
-            secondary: [
-              SectionPanel(
-                title: 'Phasenregie',
-                child: Column(
-                  children: List.generate(mysteryCase.phases.length, (index) {
-                    final phase = mysteryCase.phases[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: AppPalette.gold.withOpacity(0.16),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text('${index + 1}'),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  phase.title,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${phase.durationMinutes} Min · ${phase.musicCue}',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(phase.description),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ),
-              ),
-              SectionPanel(
-                title: 'Kostümempfehlungen',
-                subtitle:
-                    'Jede Rolle bringt direkt verwertbare Outfit-Ideen mit verschiedenen Budgets mit.',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: mysteryCase.roles.take(3).map((role) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            role.name,
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: 6),
-                          Text('Neutral: ${role.outfit.neutral}'),
-                          const SizedBox(height: 4),
-                          Text(
-                              'Accessoires: ${role.outfit.accessories.join(', ')}'),
-                          const SizedBox(height: 4),
-                          Text('Frisur: ${role.outfit.hairstyle}'),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-              SectionPanel(
-                title: 'Hinweißystem',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: mysteryCase.hints
-                      .map(
-                        (hint) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              InfoPill(label: 'Phase ${hint.unlockPhase + 1}'),
                               const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      hint.title,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(hint.detail),
-                                  ],
-                                ),
-                              ),
+                              Expanded(child: Text(highlight)),
                             ],
                           ),
                         ),
-                      )
-                      .toList(),
-                ),
-              ),
-            ],
+                      ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          SectionPanel(
+            title: 'Figuren in dieser Runde',
+            subtitle:
+                'Spoilerarm und bewusst schlicht. Private Details sehen nur die eingeladenen Spieler.',
+            child: Column(
+              children: mysteryCase.roles
+                  .map((role) => _RolePreviewCard(role: role))
+                  .toList(),
+            ),
           ),
         ],
       ),
@@ -373,16 +197,110 @@ class _MetricBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
+        color: Colors.white.withOpacity(0.06),
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: AppPalette.parchment,
           fontWeight: FontWeight.w700,
         ),
       ),
     );
   }
+}
+
+class _RolePreviewCard extends StatelessWidget {
+  const _RolePreviewCard({required this.role});
+
+  final MysteryRole role;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withOpacity(0.04),
+        border: Border.all(color: Colors.white.withOpacity(0.06)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: AppPalette.gold.withOpacity(0.18),
+            child: Text(
+              role.avatar,
+              style: const TextStyle(
+                color: AppPalette.gold,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  role.name,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(role.persona),
+                const SizedBox(height: 10),
+                InfoPill(
+                  label: _rolePresentationHint(role),
+                  icon: Icons.person_outline_rounded,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _rolePresentationHint(MysteryRole role) {
+  final lowerName = role.name.toLowerCase();
+  const feminineMarkers = [
+    'isabel',
+    'nora',
+    'amara',
+    'sofia',
+    'nadia',
+    'baronin',
+    'mila',
+    'celeste',
+    'opal',
+    'iris',
+    'sera',
+    'vesper',
+  ];
+  const masculineMarkers = [
+    'lucien',
+    'pater',
+    'matthias',
+    'captain',
+    'elias',
+    'gabriel',
+    'leon',
+    'enzo',
+    'gideon',
+    'julian',
+    'theo',
+    'inspector',
+  ];
+
+  if (feminineMarkers.any(lowerName.contains)) {
+    return 'Eher weiblich lesbar';
+  }
+  if (masculineMarkers.any(lowerName.contains)) {
+    return 'Eher maennlich lesbar';
+  }
+  return 'Offen spielbar';
 }

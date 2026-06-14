@@ -214,23 +214,24 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                   ),
                 ),
               ),
-              SectionPanel(
-                title: 'Hinweise & Phasen',
-                subtitle:
-                    'Automatische Hinweise werden pro Phase freigeschaltet. Der Host kann jederzeit manuell nachlegen.',
-                child: _HintsPanel(
-                  lobby: lobby,
-                  mysteryCase: mysteryCase,
-                  currentPhase: currentPhase,
-                  isHost: isHost,
-                  onReveal: (hintId) => _runHostAction(
-                    ref.read(mysteryControllerProvider.notifier).revealHint(
-                          widget.code,
-                          hintId,
-                        ),
+              if (lobby.hasStarted)
+                SectionPanel(
+                  title: 'Hinweise & Phasen',
+                  subtitle:
+                      'Automatische Hinweise werden pro Phase freigeschaltet. Der Host kann jederzeit manuell nachlegen.',
+                  child: _HintsPanel(
+                    lobby: lobby,
+                    mysteryCase: mysteryCase,
+                    currentPhase: currentPhase,
+                    isHost: isHost,
+                    onReveal: (hintId) => _runHostAction(
+                      ref.read(mysteryControllerProvider.notifier).revealHint(
+                            widget.code,
+                            hintId,
+                          ),
+                    ),
                   ),
                 ),
-              ),
               SectionPanel(
                 title: 'Gastzugang & QR',
                 subtitle:
@@ -627,14 +628,14 @@ class _LobbyHeaderInfo extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(
-          currentPhase.title,
+          lobby.hasStarted ? currentPhase.title : 'Warten auf Spielbeginn',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: AppPalette.parchment,
               ),
         ),
         const SizedBox(height: 10),
         Text(
-          currentPhase.description,
+          lobby.hasStarted ? currentPhase.description : mysteryCase.tagline,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: AppPalette.parchment.withOpacity(0.94),
               ),

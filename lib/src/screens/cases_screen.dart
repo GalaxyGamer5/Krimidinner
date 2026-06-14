@@ -32,7 +32,7 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
           SectionPanel(
             title: 'Kuratiertes Krimi-Archiv',
             subtitle:
-                'Wähl ein Szenario mit klarer Atmosphäre, passender Spielerzahl und sofort spielbaren Rollendossiers.',
+                'Wähle ein Szenario mit klarer Atmosphäre, passender Spielerzahl und sofort spielbaren Rollendossiers.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -58,7 +58,7 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Aktüll verfügbar: ${visibleCases.length} spielbereite Fälle',
+                  'Aktuell verfügbar: ${visibleCases.length} spielbereite Fälle',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
