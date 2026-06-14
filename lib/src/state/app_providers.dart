@@ -202,6 +202,7 @@ class SettingsController extends Notifier<AppSettings> {
 
 class MysteryController extends Notifier<MysteryState> {
   static const _stateKey = 'mystery_state_v2';
+  static const _rejoinWindow = Duration(hours: 24);
 
   final Uuid _uuid = const Uuid();
   final Random _random = Random();
@@ -210,7 +211,8 @@ class MysteryController extends Notifier<MysteryState> {
 
   @override
   MysteryState build() {
-    return _restoreState(_prefs.getString(_stateKey)) ?? _defaultState();
+    final restored = _restoreState(_prefs.getString(_stateKey)) ?? _defaultState();
+    return _cleanupExpiredRejoins(restored);
   }
 
   void updateAlias(String alias) {
@@ -274,6 +276,8 @@ class MysteryController extends Notifier<MysteryState> {
     required String alias,
     String? invitationId,
   }) {
+    _syncCleanStateIfNeeded();
+
     final lobbyIndex = _indexOfLobby(code.trim().toUpperCase());
     if (lobbyIndex == -1) {
       return 'Lobby-Code nicht gefunden.';
@@ -290,12 +294,14 @@ class MysteryController extends Notifier<MysteryState> {
       return 'Der Fall für diese Lobby ist nicht mehr verfügbar.';
     }
 
+    final normalizedAlias = trimmedAlias.toLowerCase();
+
     if (lobby.players.length >= mysteryCase.roles.length) {
       return 'Diese Lobby ist bereits voll.';
     }
 
     final duplicateName = lobby.players.any(
-      (player) => player.name.toLowerCase() == trimmedAlias.toLowerCase(),
+      (player) => player.name.toLowerCase() == normalizedAlias,
     );
     if (duplicateName) {
       return 'Dieser Spielername ist bereits vergeben.';
@@ -375,6 +381,92 @@ class MysteryController extends Notifier<MysteryState> {
     nextState = _rememberRole(nextState, updatedLobby, trimmedAlias);
     _updateState(nextState);
 
+    return null;
+  }
+
+  String? rejoinLobby({
+    required String code,
+    required String alias,
+  }) {
+    _syncCleanStateIfNeeded();
+
+    final lobbyIndex = _indexOfLobby(code.trim().toUpperCase());
+    if (lobbyIndex == -1) {
+      return 'Lobby-Code nicht gefunden.';
+    }
+
+    final trimmedAlias = alias.trim();
+    if (trimmedAlias.isEmpty) {
+      return 'Bitte gib deinen bisherigen Spielernamen ein.';
+    }
+
+    final lobby = state.lobbies[lobbyIndex];
+    final player = lobby.players
+        .where((entry) => entry.name.toLowerCase() == trimmedAlias.toLowerCase())
+        .firstOrNull;
+    if (player == null) {
+      return 'Fuer diesen Namen ist kein offener Wiederbeitritt hinterlegt.';
+    }
+    if (!_canPlayerRejoin(player)) {
+      return 'Das 24-Stunden-Fenster fuer den Wiederbeitritt ist abgelaufen.';
+    }
+
+    _restorePlayerToLobby(
+      lobbyIndex: lobbyIndex,
+      lobby: lobby,
+      player: player,
+      alias: trimmedAlias,
+    );
+    return null;
+  }
+
+  String? leaveLobby({
+    required String code,
+    required String playerId,
+  }) {
+    _syncCleanStateIfNeeded();
+
+    final lobbyIndex = _indexOfLobby(code);
+    if (lobbyIndex == -1) {
+      return 'Lobby nicht gefunden.';
+    }
+
+    final lobby = state.lobbies[lobbyIndex];
+    final playerIndex = lobby.players.indexWhere((player) => player.id == playerId);
+    if (playerIndex == -1) {
+      return 'Spieler nicht gefunden.';
+    }
+
+    final player = lobby.players[playerIndex];
+    if (!player.isOnline) {
+      return null;
+    }
+
+    final now = DateTime.now();
+    final rejoinUntil = now.add(_rejoinWindow);
+    final updatedPlayers = [...lobby.players];
+    updatedPlayers[playerIndex] = player.copyWith(
+      isOnline: false,
+      leftAt: now,
+      rejoinAvailableUntil: rejoinUntil,
+    );
+
+    final updatedLobby = lobby.copyWith(
+      players: updatedPlayers,
+      votes: lobby.votes
+          .where((vote) => vote.voterPlayerId != playerId)
+          .toList(),
+      messages: [
+        ...lobby.messages,
+        _systemMessage(
+          '${player.name} hat die Lobby verlassen. Wiederbeitritt bis ${_formatDateTime(rejoinUntil)} moeglich.',
+        ),
+      ],
+    );
+
+    final updatedLobbies = [...state.lobbies];
+    updatedLobbies[lobbyIndex] = updatedLobby;
+    _updateState(state.copyWith(lobbies: updatedLobbies));
     return null;
   }
 
@@ -1080,6 +1172,147 @@ class MysteryController extends Notifier<MysteryState> {
     );
   }
 
+  bool _canPlayerRejoin(LobbyPlayer player) {
+    final deadline = player.rejoinAvailableUntil;
+    if (player.isOnline || deadline == null) {
+      return false;
+    }
+    return deadline.isAfter(DateTime.now());
+  }
+
+  void _restorePlayerToLobby({
+    required int lobbyIndex,
+    required LobbySession lobby,
+    required LobbyPlayer player,
+    required String alias,
+  }) {
+    final updatedPlayers = lobby.players
+        .map(
+          (entry) => entry.id == player.id
+              ? entry.copyWith(
+                  name: alias,
+                  isOnline: true,
+                  clearLeftAt: true,
+                  clearRejoinAvailableUntil: true,
+                )
+              : entry,
+        )
+        .toList();
+
+    final updatedLobby = lobby.copyWith(
+      players: updatedPlayers,
+      messages: [
+        ...lobby.messages,
+        _systemMessage('$alias ist wieder in die Lobby zurueckgekehrt.'),
+      ],
+    );
+
+    final updatedLobbies = [...state.lobbies];
+    updatedLobbies[lobbyIndex] = updatedLobby;
+
+    var nextState = state.copyWith(
+      localAlias: alias,
+      lobbies: updatedLobbies,
+    );
+    nextState = _rememberRole(nextState, updatedLobby, alias);
+    _updateState(nextState);
+  }
+
+  void _syncCleanStateIfNeeded() {
+    final cleanedState = _cleanupExpiredRejoins(state);
+    if (identical(cleanedState, state)) {
+      return;
+    }
+    _updateState(cleanedState);
+  }
+
+  MysteryState _cleanupExpiredRejoins(MysteryState sourceState) {
+    var hasChanges = false;
+    final now = DateTime.now();
+    final cleanedLobbies = <LobbySession>[];
+
+    for (final lobby in sourceState.lobbies) {
+      final cleanedLobby = _cleanupLobbyRejoins(lobby, now);
+      if (cleanedLobby == null) {
+        hasChanges = true;
+        continue;
+      }
+      if (!identical(cleanedLobby, lobby)) {
+        hasChanges = true;
+      }
+      cleanedLobbies.add(cleanedLobby);
+    }
+
+    if (!hasChanges) {
+      return sourceState;
+    }
+
+    return sourceState.copyWith(lobbies: cleanedLobbies);
+  }
+
+  LobbySession? _cleanupLobbyRejoins(
+    LobbySession lobby,
+    DateTime now,
+  ) {
+    final expiredPlayers = lobby.players
+        .where(
+          (player) =>
+              !player.isOnline &&
+              player.rejoinAvailableUntil != null &&
+              !player.rejoinAvailableUntil!.isAfter(now),
+        )
+        .toList();
+    if (expiredPlayers.isEmpty) {
+      return lobby;
+    }
+
+    final expiredPlayerIds = expiredPlayers.map((player) => player.id).toSet();
+    if (expiredPlayerIds.contains(lobby.hostId)) {
+      return null;
+    }
+
+    final updatedPlayers = lobby.players
+        .where((player) => !expiredPlayerIds.contains(player.id))
+        .toList();
+    if (updatedPlayers.isEmpty) {
+      return null;
+    }
+
+    final updatedAssignments = {...lobby.roleAssignments}
+      ..removeWhere((playerId, _) => expiredPlayerIds.contains(playerId));
+
+    final updatedInvitations = lobby.invitations
+        .map(
+          (invitation) => expiredPlayerIds.contains(invitation.acceptedByPlayerId)
+              ? invitation.copyWith(
+                  status: LobbyInvitationStatus.revoked,
+                  clearAcceptedAt: true,
+                  clearAcceptedByPlayerId: true,
+                )
+              : invitation,
+        )
+        .toList();
+
+    final updatedVotes = lobby.votes
+        .where((vote) => !expiredPlayerIds.contains(vote.voterPlayerId))
+        .toList();
+
+    return lobby.copyWith(
+      players: updatedPlayers,
+      invitations: updatedInvitations,
+      roleAssignments: updatedAssignments,
+      votes: updatedVotes,
+    );
+  }
+
+  String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day.$month. $hour:$minute';
+  }
+
   void _updateState(MysteryState nextState) {
     state = nextState;
     _prefs.setString(_stateKey, jsonEncode(_serializeState(nextState)));
@@ -1188,6 +1421,8 @@ class MysteryController extends Notifier<MysteryState> {
       'joinedAt': player.joinedAt.toIso8601String(),
       'isHost': player.isHost,
       'isOnline': player.isOnline,
+      'leftAt': player.leftAt?.toIso8601String(),
+      'rejoinAvailableUntil': player.rejoinAvailableUntil?.toIso8601String(),
     };
   }
 
@@ -1350,6 +1585,9 @@ class MysteryController extends Notifier<MysteryState> {
       joinedAt: joinedAt,
       isHost: rawPlayer['isHost'] as bool? ?? false,
       isOnline: rawPlayer['isOnline'] as bool? ?? true,
+      leftAt: DateTime.tryParse(rawPlayer['leftAt'] as String? ?? ''),
+      rejoinAvailableUntil:
+          DateTime.tryParse(rawPlayer['rejoinAvailableUntil'] as String? ?? ''),
     );
   }
 

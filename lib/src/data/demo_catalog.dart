@@ -66,6 +66,16 @@ List<GamePhase> buildDefaultPhases() {
       autoHintIds: ['hint_e'],
     ),
     GamePhase(
+      id: 'theory',
+      title: 'Tathergang',
+      description:
+          'Der Taeter steht fest. Jetzt diskutiert die Runde gemeinsam, wie die Tat genau ablief, bevor der Spielleiter die finale Rekonstruktion oeffnet.',
+      durationMinutes: 6,
+      musicCue: 'Leises Pochen unter gespannten Streichern',
+      soundEffects: ['Ein Glas wird abgesetzt', 'Angespannte Stille im Raum'],
+      autoHintIds: [],
+    ),
+    GamePhase(
       id: 'reveal',
       title: 'Auflösung',
       description:

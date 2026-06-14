@@ -91,9 +91,15 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
             .firstOrNull;
     final acceptedByCurrentAlias = acceptedPlayer != null &&
         acceptedPlayer.name.toLowerCase() == state.localAlias.toLowerCase();
+    final canRejoin = acceptedPlayer != null && acceptedPlayer.canRejoin;
     final showWaitingRoom =
         invitation.status == LobbyInvitationStatus.accepted &&
-            acceptedByCurrentAlias;
+            acceptedByCurrentAlias &&
+            !canRejoin;
+    final showRejoinPanel =
+        invitation.status == LobbyInvitationStatus.accepted &&
+            acceptedByCurrentAlias &&
+            canRejoin;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -180,6 +186,51 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                       ),
                     ],
                   ),
+                ),
+              ],
+            )
+          else if (showRejoinPanel)
+            TwoColumnLayout(
+              primary: [
+                SectionPanel(
+                  title: 'Wiederbeitritt',
+                  subtitle:
+                      'Deine Einladung ist bereits angenommen und deine Rolle bleibt noch kurz reserviert.',
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Du kannst mit demselben Namen direkt wieder in den Warteraum oder in die laufende Lobby zurueckkehren.',
+                      ),
+                      const SizedBox(height: 18),
+                      FilledButton.icon(
+                        onPressed: () => _rejoinInvitation(lobby),
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Wieder beitreten'),
+                      ),
+                    ],
+                  ),
+                ),
+                SectionPanel(
+                  title: 'Deine Rolle',
+                  subtitle:
+                      'Diese Figur bleibt waehrend des 24-Stunden-Fensters fuer dich reserviert.',
+                  trailing: assignedRole == null
+                      ? null
+                      : InfoPill(
+                          label: assignedRole.name,
+                          icon: Icons.person_pin_circle_rounded,
+                        ),
+                  child: assignedRole == null
+                      ? const Text('Deine Rolle wird gerade vorbereitet.')
+                      : _RolePreview(role: assignedRole),
+                ),
+              ],
+              secondary: [
+                SectionPanel(
+                  title: 'Fallueberblick',
+                  subtitle: 'Das ist die Szene, in die du zurueckkehren kannst.',
+                  child: _CaseOverview(mysteryCase: mysteryCase),
                 ),
               ],
             )
@@ -293,6 +344,20 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
     }
 
     _showMessage('Einladung angenommen. Du bist jetzt im Warteraum.');
+  }
+
+  void _rejoinInvitation(LobbySession lobby) {
+    final error = ref.read(mysteryControllerProvider.notifier).rejoinLobby(
+          code: lobby.code,
+          alias: _nameController.text,
+        );
+
+    if (error != null) {
+      _showMessage(error);
+      return;
+    }
+
+    _showMessage('Wiederbeitritt erfolgreich. Dein Platz ist wieder aktiv.');
   }
 
   void _showMessage(String message) {

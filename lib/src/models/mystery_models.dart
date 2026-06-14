@@ -259,6 +259,8 @@ class LobbyPlayer {
     required this.joinedAt,
     required this.isHost,
     required this.isOnline,
+    this.leftAt,
+    this.rejoinAvailableUntil,
   });
 
   final String id;
@@ -266,6 +268,13 @@ class LobbyPlayer {
   final DateTime joinedAt;
   final bool isHost;
   final bool isOnline;
+  final DateTime? leftAt;
+  final DateTime? rejoinAvailableUntil;
+
+  bool get canRejoin {
+    final deadline = rejoinAvailableUntil;
+    return !isOnline && deadline != null && deadline.isAfter(DateTime.now());
+  }
 
   LobbyPlayer copyWith({
     String? id,
@@ -273,6 +282,10 @@ class LobbyPlayer {
     DateTime? joinedAt,
     bool? isHost,
     bool? isOnline,
+    DateTime? leftAt,
+    DateTime? rejoinAvailableUntil,
+    bool clearLeftAt = false,
+    bool clearRejoinAvailableUntil = false,
   }) {
     return LobbyPlayer(
       id: id ?? this.id,
@@ -280,6 +293,10 @@ class LobbyPlayer {
       joinedAt: joinedAt ?? this.joinedAt,
       isHost: isHost ?? this.isHost,
       isOnline: isOnline ?? this.isOnline,
+      leftAt: clearLeftAt ? null : leftAt ?? this.leftAt,
+      rejoinAvailableUntil: clearRejoinAvailableUntil
+          ? null
+          : rejoinAvailableUntil ?? this.rejoinAvailableUntil,
     );
   }
 }

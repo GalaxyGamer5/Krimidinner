@@ -320,6 +320,149 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     }
   }
 
+  Future<void> _confirmLeaveLobby(LobbyPlayer viewer) async {
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Lobby wirklich verlassen?'),
+          content: const Text(
+            'Deine Rolle bleibt noch 24 Stunden fuer dich reserviert. In dieser Zeit kannst du mit demselben Namen wieder beitreten.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Bleiben'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Lobby verlassen'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLeave != true || !mounted) {
+      return;
+    }
+
+    final error = ref.read(mysteryControllerProvider.notifier).leaveLobby(
+          code: widget.code,
+          playerId: viewer.id,
+        );
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+      return;
+    }
+
+    context.go('/lobbies');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Lobby verlassen. Wiederbeitritt mit demselben Namen ist 24 Stunden moeglich.',
+        ),
+      ),
+    );
+  }
+
+  void _rejoinLobby(String alias) {
+    final error = ref.read(mysteryControllerProvider.notifier).rejoinLobby(
+          code: widget.code,
+          alias: alias,
+        );
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  LobbyPlayer? _activeViewer(LobbySession lobby, String alias) {
+    return lobby.players
+        .where(
+          (player) =>
+              player.isOnline &&
+              player.name.toLowerCase() == alias.toLowerCase(),
+        )
+        .firstOrNull;
+  }
+
+  LobbyPlayer? _rejoinCandidate(LobbySession lobby, String alias) {
+    return lobby.players
+        .where(
+          (player) =>
+              !player.isOnline &&
+              player.canRejoin &&
+              player.name.toLowerCase() == alias.toLowerCase(),
+        )
+        .firstOrNull;
+  }
+
+  Widget _buildRejoinFallback(
+    BuildContext context,
+    LobbySession lobby,
+    MysteryCase mysteryCase,
+    LobbyPlayer player,
+  ) {
+    final roleId = lobby.roleAssignments[player.id];
+    final role = roleId == null
+        ? null
+        : mysteryCase.roles.where((entry) => entry.id == roleId).firstOrNull;
+    final deadline = player.rejoinAvailableUntil;
+    final timeLabel = deadline == null
+        ? 'fuer kurze Zeit'
+        : '${deadline.day.toString().padLeft(2, '0')}.${deadline.month.toString().padLeft(2, '0')} um ${deadline.hour.toString().padLeft(2, '0')}:${deadline.minute.toString().padLeft(2, '0')}';
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Container(
+          margin: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            color: Colors.white.withOpacity(0.04),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Wiederbeitritt moeglich',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Dein Platz in ${mysteryCase.title} ist noch bis $timeLabel fuer dich reserviert.',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              if (role != null) ...[
+                const SizedBox(height: 14),
+                Text(
+                  'Reservierte Rolle: ${role.name}',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppPalette.gold,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
+              const SizedBox(height: 22),
+              FilledButton.icon(
+                onPressed: () => _rejoinLobby(player.name),
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Wieder beitreten'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(mysteryControllerProvider);
@@ -337,9 +480,8 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
       );
     }
 
-    final viewer = lobby.players
-        .where((player) => player.name.toLowerCase() == state.localAlias.toLowerCase())
-        .firstOrNull;
+    final viewer = _activeViewer(lobby, state.localAlias);
+    final rejoinPlayer = _rejoinCandidate(lobby, state.localAlias);
     final isHost = viewer?.id == lobby.hostId;
     final currentPhase = mysteryCase.phases[lobby.phaseIndex];
     final viewerRoleId = viewer == null ? null : lobby.roleAssignments[viewer.id];
@@ -347,8 +489,40 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
         ? null
         : mysteryCase.roles.where((role) => role.id == viewerRoleId).firstOrNull;
 
+    if (viewer == null && rejoinPlayer != null) {
+      return Scaffold(
+        backgroundColor: AppPalette.noir,
+        appBar: AppBar(title: const Text('Spielsitzung')),
+        body: _buildRejoinFallback(
+          context,
+          lobby,
+          mysteryCase,
+          rejoinPlayer,
+        ),
+      );
+    }
+
+    if (viewer == null) {
+      return Scaffold(
+        backgroundColor: AppPalette.noir,
+        appBar: AppBar(title: const Text('Spielsitzung')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Du bist aktuell nicht als aktiver Spieler mit dieser Lobby verbunden.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_selectedRecipientPlayerId != null &&
-        !lobby.players.any((player) => player.id == _selectedRecipientPlayerId)) {
+        !lobby.players.any(
+          (player) =>
+              player.isOnline && player.id == _selectedRecipientPlayerId,
+        )) {
       _selectedRecipientPlayerId = null;
     }
 
@@ -365,6 +539,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
         context,
         mysteryCase,
         lobby,
+        viewer,
         viewerRole,
         remaining,
       ),
@@ -396,9 +571,8 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
                 animationsEnabled: appSettings.animationsEnabled,
                 onSelectRecipient: _selectRecipient,
                 onSend: () => _sendChatMessage(lobby, viewer),
-                onOpenReactionPicker: viewer == null
-                    ? null
-                    : (message) => _openReactionPicker(context, message, viewer),
+                onOpenReactionPicker: (message) =>
+                    _openReactionPicker(context, message, viewer),
                 onOpenEvidence: _openEvidence,
               ),
             ),
@@ -458,6 +632,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     BuildContext context,
     MysteryCase mysteryCase,
     LobbySession lobby,
+    LobbyPlayer viewer,
     MysteryRole? viewerRole,
     Duration remaining,
   ) {
@@ -520,6 +695,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
             activeColor: Colors.purpleAccent,
             onTap: () => _toggleWindow(_WindowId.role),
           ),
+        const SizedBox(width: 6),
+        IconButton(
+          tooltip: 'Lobby verlassen',
+          onPressed: () => _confirmLeaveLobby(viewer),
+          icon: const Icon(Icons.logout_rounded),
+        ),
         const SizedBox(width: 12),
       ],
     );
@@ -534,6 +715,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     bool isHost,
   ) {
     final isVotePhase = currentPhase.id == 'vote';
+    final isTheoryPhase = currentPhase.id == 'theory' && !lobby.isCompleted;
     final isRevealPhase = currentPhase.id == 'reveal' || lobby.isCompleted;
     final visibleEvidenceCount = lobby.evidences.length;
     final submittedVotes = lobby.votes.length;
@@ -604,6 +786,11 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
                       viewer: viewer,
                       onVote: _castVote,
                     ),
+                  if (isTheoryPhase)
+                    _TheoryPanel(
+                      lobby: lobby,
+                      mysteryCase: mysteryCase,
+                    ),
                   if (isRevealPhase)
                     _ResultsPanel(
                       lobby: lobby,
@@ -629,9 +816,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
                       ),
                       icon: const Icon(Icons.skip_next_rounded),
                       label: Text(
-                        lobby.phaseIndex < mysteryCase.phases.length - 1
-                            ? 'Naechste Phase'
-                            : 'Fall abschliessen',
+                        _hostActionLabel(lobby, mysteryCase, currentPhase),
                       ),
                     )
                   else
@@ -668,6 +853,23 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     final remaining = phaseEnd.difference(_now);
     return remaining.isNegative ? Duration.zero : remaining;
   }
+
+  String _hostActionLabel(
+    LobbySession lobby,
+    MysteryCase mysteryCase,
+    GamePhase currentPhase,
+  ) {
+    if (lobby.phaseIndex >= mysteryCase.phases.length - 1) {
+      return 'Fall abschliessen';
+    }
+    if (currentPhase.id == 'vote') {
+      return 'Moerder offenlegen';
+    }
+    if (currentPhase.id == 'theory') {
+      return 'Tathergang aufdecken';
+    }
+    return 'Naechste Phase';
+  }
 }
 
 class _ChatWindowContent extends ConsumerWidget {
@@ -703,11 +905,16 @@ class _ChatWindowContent extends ConsumerWidget {
     final selectedRecipient = selectedRecipientPlayerId == null
         ? null
         : lobby.players
-            .where((player) => player.id == selectedRecipientPlayerId)
+            .where(
+              (player) =>
+                  player.isOnline && player.id == selectedRecipientPlayerId,
+            )
             .firstOrNull;
     final recipients = viewer == null
         ? const <LobbyPlayer>[]
-        : lobby.players.where((player) => player.id != viewer!.id).toList();
+        : lobby.players
+            .where((player) => player.isOnline && player.id != viewer!.id)
+            .toList();
 
     return Column(
       children: [
@@ -1065,6 +1272,7 @@ class _VotePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final activePlayerCount = lobby.players.where((player) => player.isOnline).length;
     final viewerVote = lobby.votes
         .where((vote) => vote.voterPlayerId == viewer.id)
         .firstOrNull;
@@ -1108,10 +1316,244 @@ class _VotePanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            '${lobby.votes.length}/${lobby.players.length} Stimmen abgegeben',
+            '${lobby.votes.length}/$activePlayerCount Stimmen abgegeben',
             style: TextStyle(
               color: Colors.white.withOpacity(0.64),
               fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+MysteryRole? _culpritRoleForCase(MysteryCase mysteryCase) {
+  final culpritRoleId = _culpritRoleIds[mysteryCase.id];
+  if (culpritRoleId == null) {
+    return null;
+  }
+  return mysteryCase.roles.where((role) => role.id == culpritRoleId).firstOrNull;
+}
+
+List<_RevealBeat> _buildRevealBeats(
+  MysteryCase mysteryCase,
+  MysteryRole culpritRole,
+) {
+  switch (mysteryCase.id) {
+    case 'villa_no_7':
+      return [
+        _RevealBeat(
+          title: 'Vor dem Dinner',
+          body:
+              '${culpritRole.name} merkte frueh, dass sich der Abend nicht mehr kontrollieren liess. ${culpritRole.motive}',
+        ),
+        _RevealBeat(
+          title: 'Der entscheidende Augenblick',
+          body:
+              'Als die Stimmung in der Villa kippte, nutzte ${culpritRole.name} einen kurzen unbeobachteten Moment im Schutz der Unruhe. ${culpritRole.secret}',
+        ),
+        _RevealBeat(
+          title: 'Die falsche Spur',
+          body:
+              'Direkt danach stuetzte sich ${culpritRole.name} auf das eigene Alibi und liess die Runde auf andere Konflikte schauen: ${culpritRole.alibi}',
+        ),
+        _RevealBeat(
+          title: 'Warum es aufflog',
+          body:
+              'Die Widersprueche wurden am Ende zu deutlich. Besonders dieser Verdachtsmoment konnte nicht mehr erklaert werden: ${culpritRole.suspicion}',
+        ),
+      ];
+    case 'aurelia_express':
+      return [
+        _RevealBeat(
+          title: 'Noch vor Mitternacht',
+          body:
+              '${culpritRole.name} bereitete den Abend auf dem Zug lange vor und hielt den Druck bis zuletzt verborgen. ${culpritRole.motive}',
+        ),
+        _RevealBeat(
+          title: 'Im Rhythmus des Zuges',
+          body:
+              'Zwischen Umsteigen, Geraeuschen und Bewegung bot der Zug genau das Zeitfenster, das fuer die Tat noetig war. ${culpritRole.secret}',
+        ),
+        _RevealBeat(
+          title: 'Deckung',
+          body:
+              'Danach stellte ${culpritRole.name} die eigene Version des Abends in den Vordergrund und klammerte sich an dieses Alibi: ${culpritRole.alibi}',
+        ),
+        _RevealBeat(
+          title: 'Der Bruch in der Geschichte',
+          body:
+              'Erst spaeter fiel auf, dass ein Detail nie zu den restlichen Aussagen passte: ${culpritRole.suspicion}',
+        ),
+      ];
+    case 'crimson_masquerade':
+      return [
+        _RevealBeat(
+          title: 'Hinter der Maske',
+          body:
+              'Noch waehrend des Festes schob ${culpritRole.name} die eigenen Interessen ueber jede Loyalitaet. ${culpritRole.motive}',
+        ),
+        _RevealBeat(
+          title: 'Im Schatten des Balls',
+          body:
+              'Die Verkleidungen und die vielen Bewegungen im Saal verschafften genau die Tarnung, die fuer den Angriff gebraucht wurde. ${culpritRole.secret}',
+        ),
+        _RevealBeat(
+          title: 'Inszenierte Ruhe',
+          body:
+              'Anschliessend praesentierte ${culpritRole.name} der Runde eine kontrollierte Version des Abends: ${culpritRole.alibi}',
+        ),
+        _RevealBeat(
+          title: 'Der verratene Fehler',
+          body:
+              'Am Ende blieb eine Spur uebrig, die nicht mehr zu erklaeren war und alles umdrehte: ${culpritRole.suspicion}',
+        ),
+      ];
+    case 'lantern_society':
+      return [
+        _RevealBeat(
+          title: 'Vor der Zeremonie',
+          body:
+              '${culpritRole.name} trug den Konflikt schon in den ersten Minuten des Abends in sich. ${culpritRole.motive}',
+        ),
+        _RevealBeat(
+          title: 'Der Zugriff',
+          body:
+              'Zwischen Ritual, Kerzenlicht und Ablenkung entstand die Gelegenheit, den Plan umzusetzen. ${culpritRole.secret}',
+        ),
+        _RevealBeat(
+          title: 'Verdeckte Spuren',
+          body:
+              'Danach setzte ${culpritRole.name} darauf, dass dieses Alibi und die vielen Geheimnisse der Gruppe genug Schutz bieten wuerden: ${culpritRole.alibi}',
+        ),
+        _RevealBeat(
+          title: 'Die letzte Unstimmigkeit',
+          body:
+              'Doch ausgerechnet ein scheinbar kleines Detail riss die Fassade ein: ${culpritRole.suspicion}',
+        ),
+      ];
+    default:
+      return [
+        _RevealBeat(
+          title: 'Motiv',
+          body: culpritRole.motive,
+        ),
+        _RevealBeat(
+          title: 'Verdecktes Geheimnis',
+          body: culpritRole.secret,
+        ),
+        _RevealBeat(
+          title: 'Alibi und Bruchstelle',
+          body: '${culpritRole.alibi}\n\n${culpritRole.suspicion}',
+        ),
+      ];
+  }
+}
+
+@immutable
+class _RevealBeat {
+  const _RevealBeat({
+    required this.title,
+    required this.body,
+  });
+
+  final String title;
+  final String body;
+}
+
+class _TheoryPanel extends StatelessWidget {
+  const _TheoryPanel({
+    required this.lobby,
+    required this.mysteryCase,
+  });
+
+  final LobbySession lobby;
+  final MysteryCase mysteryCase;
+
+  @override
+  Widget build(BuildContext context) {
+    final culpritRole = _culpritRoleForCase(mysteryCase);
+    if (culpritRole == null) {
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 22),
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(26),
+          color: Colors.white.withOpacity(0.04),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: const Text(
+          'Die Aufloesung fuer diesen Fall ist noch nicht hinterlegt.',
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 22),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        color: Colors.white.withOpacity(0.04),
+        border: Border.all(color: AppPalette.gold.withOpacity(0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tathergang diskutieren',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: AppPalette.gold,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '${culpritRole.name} war der Moerder.',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Bevor die finale Rekonstruktion sichtbar wird, sammelt die Runde jetzt ihre Theorie zum Ablauf der Tat.',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 18),
+          const Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _TheoryPromptChip(
+                icon: Icons.schedule_rounded,
+                label: 'Wann kippte der Abend?',
+              ),
+              _TheoryPromptChip(
+                icon: Icons.visibility_off_rounded,
+                label: 'Welche Gelegenheit wurde genutzt?',
+              ),
+              _TheoryPromptChip(
+                icon: Icons.alt_route_rounded,
+                label: 'Welche falsche Spur blieb zurueck?',
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.white.withOpacity(0.03),
+            ),
+            child: Text(
+              'Diskutiert jetzt gemeinsam im Chat. Der Spielleiter kann anschliessend den genauen Tathergang aufdecken.',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.82),
+                height: 1.5,
+              ),
             ),
           ),
         ],
@@ -1131,10 +1573,7 @@ class _ResultsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final culpritRoleId = _culpritRoleIds[mysteryCase.id];
-    final culpritRole = culpritRoleId == null
-        ? null
-        : mysteryCase.roles.where((role) => role.id == culpritRoleId).firstOrNull;
+    final culpritRole = _culpritRoleForCase(mysteryCase);
 
     if (culpritRole == null) {
       return Container(
@@ -1186,6 +1625,7 @@ class _ResultsPanel extends StatelessWidget {
         );
       }
     }
+    final revealBeats = _buildRevealBeats(mysteryCase, culpritRole);
 
     final playerRows = lobby.players.map((player) {
       final vote = lobby.votes.where((entry) => entry.voterPlayerId == player.id).firstOrNull;
@@ -1238,6 +1678,20 @@ class _ResultsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text('Motiv: ${culpritRole.motive}'),
+          const SizedBox(height: 22),
+          Text(
+            'Rekonstruktion des Abends',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 12),
+          ...revealBeats.map(
+            (beat) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _RevealBeatCard(beat: beat),
+            ),
+          ),
           const SizedBox(height: 18),
           Wrap(
             spacing: 12,
@@ -1289,6 +1743,75 @@ class _ResultsPanel extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: row,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TheoryPromptChip extends StatelessWidget {
+  const _TheoryPromptChip({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: Colors.white.withOpacity(0.05),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppPalette.gold),
+          const SizedBox(width: 8),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+class _RevealBeatCard extends StatelessWidget {
+  const _RevealBeatCard({
+    required this.beat,
+  });
+
+  final _RevealBeat beat;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withOpacity(0.04),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            beat.title,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            beat.body,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  height: 1.5,
+                ),
           ),
         ],
       ),

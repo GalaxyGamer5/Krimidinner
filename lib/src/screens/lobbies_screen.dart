@@ -154,10 +154,17 @@ class _LobbiesScreenState extends ConsumerState<LobbiesScreen> {
   }
 
   void _joinLobby() {
-    final error = ref.read(mysteryControllerProvider.notifier).joinLobby(
-          code: _codeController.text,
-          alias: _nameController.text,
-        );
+    final controller = ref.read(mysteryControllerProvider.notifier);
+    final rejoinError = controller.rejoinLobby(
+      code: _codeController.text,
+      alias: _nameController.text,
+    );
+    final error = rejoinError == null
+        ? null
+        : controller.joinLobby(
+            code: _codeController.text,
+            alias: _nameController.text,
+          );
 
     if (error != null) {
       _showMessage(error);
@@ -311,6 +318,15 @@ class _LobbyPreviewCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mysteryCase = ref.watch(mysteryCaseProvider(lobby.caseId));
+    final alias = ref.watch(mysteryControllerProvider).localAlias;
+    final rejoinPlayer = lobby.players
+        .where(
+          (player) =>
+              !player.isOnline &&
+              player.canRejoin &&
+              player.name.toLowerCase() == alias.toLowerCase(),
+        )
+        .firstOrNull;
 
     return InkWell(
       onTap: () => context.go('/lobbies/room/${lobby.code}'),
@@ -336,7 +352,11 @@ class _LobbyPreviewCard extends ConsumerWidget {
                           label: 'Code ${lobby.code}',
                           icon: Icons.qr_code_rounded),
                       InfoPill(
-                        label: lobby.hasStarted ? 'Laufend' : 'Bereit',
+                        label: rejoinPlayer != null
+                            ? 'Wiedereinstieg'
+                            : lobby.hasStarted
+                                ? 'Laufend'
+                                : 'Bereit',
                         icon: lobby.hasStarted
                             ? Icons.play_circle_outline_rounded
                             : Icons.hourglass_bottom_rounded,
@@ -355,7 +375,11 @@ class _LobbyPreviewCard extends ConsumerWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_rounded),
+            Icon(
+              rejoinPlayer != null
+                  ? Icons.refresh_rounded
+                  : Icons.arrow_forward_rounded,
+            ),
           ],
         ),
       ),

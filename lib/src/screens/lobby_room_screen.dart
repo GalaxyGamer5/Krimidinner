@@ -71,6 +71,7 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
 
     final state = ref.watch(mysteryControllerProvider);
     final viewer = _playerByName(lobby, state.localAlias);
+    final rejoinPlayer = _rejoinPlayerByName(lobby, state.localAlias);
     final currentRole =
         viewer == null ? null : _roleForPlayer(lobby, mysteryCase, viewer);
     final currentPhase = mysteryCase.phases[lobby.phaseIndex];
@@ -151,6 +152,15 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
           const SizedBox(height: 16),
           TwoColumnLayout(
             primary: [
+              if (viewer == null && rejoinPlayer != null)
+                SectionPanel(
+                  title: 'Wiederbeitritt',
+                  child: _RejoinLobbyPanel(
+                    player: rejoinPlayer,
+                    mysteryCase: mysteryCase,
+                    onRejoin: () => _rejoinLobby(rejoinPlayer.name),
+                  ),
+                ),
               if (viewer != null && !isHost && !lobby.hasStarted)
                 SectionPanel(
                   title: 'Warteraum',
@@ -170,14 +180,34 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                     ),
                   ),
                 ),
-              SectionPanel(
-                title: 'Chat',
-                child: _ChatPanel(
-                  lobby: lobby,
-                  chatController: _chatController,
-                  onSend: _sendChat,
+              if (viewer != null)
+                SectionPanel(
+                  title: 'Lobby',
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: () => _confirmLeaveLobby(viewer),
+                      icon: const Icon(Icons.logout_rounded),
+                      label: const Text('Lobby verlassen'),
+                    ),
+                  ),
                 ),
-              ),
+              if (viewer != null)
+                SectionPanel(
+                  title: 'Chat',
+                  child: _ChatPanel(
+                    lobby: lobby,
+                    chatController: _chatController,
+                    onSend: _sendChat,
+                  ),
+                )
+              else
+                const SectionPanel(
+                  title: 'Chat',
+                  child: Text(
+                    'Der Lobbychat wird wieder freigeschaltet, sobald du der Runde erneut beigetreten bist.',
+                  ),
+                ),
             ],
             secondary: [
               SectionPanel(
@@ -246,6 +276,58 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
           body: _chatController.text,
         );
     _chatController.clear();
+  }
+
+  Future<void> _confirmLeaveLobby(LobbyPlayer viewer) async {
+    final shouldLeave = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Lobby wirklich verlassen?'),
+          content: const Text(
+            'Deine Rolle bleibt noch 24 Stunden fuer dich reserviert. In dieser Zeit kannst du mit demselben Namen wieder beitreten.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Bleiben'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Lobby verlassen'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLeave != true || !mounted) {
+      return;
+    }
+
+    final error = ref.read(mysteryControllerProvider.notifier).leaveLobby(
+          code: widget.code,
+          playerId: viewer.id,
+        );
+    if (error != null) {
+      _showMessage(error);
+      return;
+    }
+
+    context.go('/lobbies');
+    _showMessage(
+      'Lobby verlassen. Wiederbeitritt mit demselben Namen ist 24 Stunden moeglich.',
+    );
+  }
+
+  void _rejoinLobby(String alias) {
+    final error = ref.read(mysteryControllerProvider.notifier).rejoinLobby(
+          code: widget.code,
+          alias: alias,
+        );
+    if (error != null) {
+      _showMessage(error);
+    }
   }
 
   Future<void> _openInviteSheet(
@@ -511,7 +593,18 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
 
   LobbyPlayer? _playerByName(LobbySession lobby, String alias) {
     for (final player in lobby.players) {
-      if (player.name.toLowerCase() == alias.toLowerCase()) {
+      if (player.isOnline && player.name.toLowerCase() == alias.toLowerCase()) {
+        return player;
+      }
+    }
+    return null;
+  }
+
+  LobbyPlayer? _rejoinPlayerByName(LobbySession lobby, String alias) {
+    for (final player in lobby.players) {
+      if (!player.isOnline &&
+          player.canRejoin &&
+          player.name.toLowerCase() == alias.toLowerCase()) {
         return player;
       }
     }
@@ -708,6 +801,42 @@ class _HostControls extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _RejoinLobbyPanel extends StatelessWidget {
+  const _RejoinLobbyPanel({
+    required this.player,
+    required this.mysteryCase,
+    required this.onRejoin,
+  });
+
+  final LobbyPlayer player;
+  final MysteryCase mysteryCase;
+  final VoidCallback onRejoin;
+
+  @override
+  Widget build(BuildContext context) {
+    final deadline = player.rejoinAvailableUntil;
+    final deadlineLabel = deadline == null
+        ? 'fuer kurze Zeit'
+        : '${deadline.day.toString().padLeft(2, '0')}.${deadline.month.toString().padLeft(2, '0')} um ${deadline.hour.toString().padLeft(2, '0')}:${deadline.minute.toString().padLeft(2, '0')}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Dein Platz in ${mysteryCase.title} ist noch bis $deadlineLabel fuer dich reserviert.',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        const SizedBox(height: 14),
+        FilledButton.icon(
+          onPressed: onRejoin,
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Wieder beitreten'),
+        ),
+      ],
     );
   }
 }
