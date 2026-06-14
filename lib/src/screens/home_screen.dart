@@ -337,7 +337,7 @@ class _StoryHero extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             latestLobbyCode == null
-                ? 'Dein nächster Abend kann sofort starten: einen Fall auswählen, Lobby erstellen und Demo-Gäste zum Durchtesten hinzufügen.'
+                ? 'Dein naechster Abend kann sofort starten: einen Fall auswaehlen, Lobby erstellen und echte Gaeste per Einladungslink dazu holen.'
                 : 'Die letzte Session mit Code $latestLobbyCode ist nur einen Klick entfernt. Rolle verteilen, Countdown starten und Hinweise elegant ausspielen.',
             style: textTheme.bodyLarge?.copyWith(color: AppPalette.parchment),
           ),

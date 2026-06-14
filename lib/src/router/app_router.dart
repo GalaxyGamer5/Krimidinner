@@ -6,6 +6,7 @@ import '../screens/case_detail_screen.dart';
 import '../screens/cases_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/intro_screen.dart';
+import '../screens/invitation_screen.dart';
 import '../screens/lobbies_screen.dart';
 import '../screens/lobby_room_screen.dart';
 import '../screens/roles_screen.dart';
@@ -23,6 +24,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/join/:code',
         redirect: (context, state) {
           final code = state.pathParameters['code'] ?? '';
+          final inviteId = state.uri.queryParameters['invite'];
+          if (inviteId != null && inviteId.isNotEmpty) {
+            return '/invite/$inviteId?code=$code';
+          }
           return '/lobbies?invite=$code';
         },
       ),
@@ -63,6 +68,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 ),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/invite/:invitationId',
+            builder: (context, state) => InvitationScreen(
+              invitationId: state.pathParameters['invitationId'] ?? '',
+              lobbyCode: state.uri.queryParameters['code'] ?? '',
+            ),
           ),
           GoRoute(
             path: '/roles',

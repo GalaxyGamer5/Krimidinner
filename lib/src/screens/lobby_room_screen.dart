@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/mystery_models.dart';
 import '../state/app_providers.dart';
@@ -61,7 +64,8 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
     final mysteryCase = ref.watch(mysteryCaseProvider(lobby.caseId));
     if (mysteryCase == null) {
       return const Center(
-          child: Text('Der zugehörige Fall ist nicht verfügbar.'));
+        child: Text('Der zugehoerige Fall ist nicht verfuegbar.'),
+      );
     }
 
     final state = ref.watch(mysteryControllerProvider);
@@ -71,6 +75,10 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
     final currentPhase = mysteryCase.phases[lobby.phaseIndex];
     final remaining = _phaseRemaining(lobby, currentPhase);
     final isHost = viewer?.id == lobby.hostId;
+    final pendingInvitations = lobby.invitations
+        .where(
+            (invitation) => invitation.status == LobbyInvitationStatus.pending)
+        .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -95,6 +103,7 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                   mysteryCase: mysteryCase,
                   currentPhase: currentPhase,
                   remaining: remaining,
+                  pendingInvitationCount: pendingInvitations.length,
                 );
                 final controls = _HostControls(
                   lobby: lobby,
@@ -114,7 +123,7 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                         .read(mysteryControllerProvider.notifier)
                         .reshuffleRoles(widget.code),
                   ),
-                  onAddGuests: _addDemoGuests,
+                  onInviteGuests: () => _openInviteSheet(lobby, mysteryCase),
                 );
 
                 if (!isWide) {
@@ -141,11 +150,21 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
           const SizedBox(height: 16),
           TwoColumnLayout(
             primary: [
+              if (viewer != null && !isHost && !lobby.hasStarted)
+                SectionPanel(
+                  title: 'Warteraum',
+                  subtitle:
+                      'Du bist bereits in der Runde. Jetzt fehlt nur noch der Start durch den Spielleiter.',
+                  child: _WaitingPanel(
+                    mysteryCase: mysteryCase,
+                    role: currentRole,
+                  ),
+                ),
               SectionPanel(
                 title: 'Deine geheime Rolle',
                 subtitle: currentRole == null
-                    ? 'Sobald du Teil dieser Lobby bist, erscheint dein persönliches Dossier hier.'
-                    : 'Nur für ${viewer!.name} sichtbar. Die Rolle wird lokal im Archiv gespeichert.',
+                    ? 'Sobald du Teil dieser Lobby bist, erscheint dein persoenliches Dossier hier.'
+                    : 'Nur fuer ${viewer!.name} sichtbar. Die Rolle wird lokal im Archiv gespeichert.',
                 trailing: currentRole == null
                     ? null
                     : InfoPill(
@@ -153,13 +172,13 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                         icon: Icons.lock_rounded,
                       ),
                 child: currentRole == null
-                    ? const Text('Noch keine Rolle verfügbar.')
+                    ? const Text('Noch keine Rolle verfuegbar.')
                     : _RoleDossier(role: currentRole),
               ),
               SectionPanel(
                 title: 'Chat',
                 subtitle:
-                    'Lobby-, Rollen- und Systemmeldungen laufen hier zusammen. Perfekt für die Moderation während des Spiels.',
+                    'Lobby-, Rollen- und Systemmeldungen laufen hier zusammen. Perfekt fuer die Moderation waehrend des Spiels.',
                 child: _ChatPanel(
                   lobby: lobby,
                   chatController: _chatController,
@@ -171,14 +190,26 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
               SectionPanel(
                 title: 'Spielerliste & Einladungen',
                 subtitle:
-                    'Teile den Code oder den QR direkt mit deiner Runde. Der Host kann Demo-Gäste hinzufügen oder Spieler entfernen.',
+                    'Persoenliche Einladungen, Rollenbindungen und Wartestatus laufen hier zusammen.',
                 child: _RosterPanel(
                   lobby: lobby,
+                  mysteryCase: mysteryCase,
                   isHost: isHost,
                   onKick: (playerId) => _runHostAction(
                     ref.read(mysteryControllerProvider.notifier).kickPlayer(
                           widget.code,
                           playerId,
+                        ),
+                  ),
+                  onShareInvitation: (invitation) => _openInviteSheet(
+                      lobby, mysteryCase,
+                      invitation: invitation),
+                  onRevokeInvitation: (invitationId) => _runHostAction(
+                    ref
+                        .read(mysteryControllerProvider.notifier)
+                        .revokeInvitation(
+                          widget.code,
+                          invitationId,
                         ),
                   ),
                 ),
@@ -201,22 +232,15 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                 ),
               ),
               SectionPanel(
-                title: 'QR- und Link-Einladung',
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    QrImageView(
-                      data: lobby.inviteLink,
-                      version: QrVersions.auto,
-                      size: 170,
-                      backgroundColor: Colors.white,
-                    ),
-                    const SizedBox(height: 12),
-                    SelectableText(
-                      lobby.inviteLink,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                title: 'Gastzugang & QR',
+                subtitle:
+                    'Der allgemeine Lobby-Link bleibt verfuergbar. Fuer echte Einladungen nutze den Button "Gaeste einladen".',
+                child: _InviteOverviewPanel(
+                  lobby: lobby,
+                  pendingInvitationCount: pendingInvitations.length,
+                  onCopyLobbyLink: () => _copyToClipboard(lobby.inviteLink),
+                  onOpenInvitationTool: () =>
+                      _openInviteSheet(lobby, mysteryCase),
                 ),
               ),
             ],
@@ -236,14 +260,250 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
     _chatController.clear();
   }
 
-  void _addDemoGuests() {
-    final added =
-        ref.read(mysteryControllerProvider.notifier).addDemoGuests(widget.code);
-    if (added == 0) {
-      _showMessage('Keine freien Rollenplätze mehr verfügbar.');
-      return;
+  Future<void> _openInviteSheet(
+    LobbySession lobby,
+    MysteryCase mysteryCase, {
+    LobbyInvitation? invitation,
+  }) async {
+    final guestController =
+        TextEditingController(text: invitation?.recipientName ?? '');
+    final initialLobby = ref.read(lobbyProvider(widget.code)) ?? lobby;
+    final availableRoles = _availableRolesForLobby(initialLobby, mysteryCase);
+    var selectedRoleId =
+        invitation?.assignedRoleId ?? availableRoles.firstOrNull?.id;
+    var activeInvitation = invitation;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final latestLobby = ref.read(lobbyProvider(widget.code)) ?? lobby;
+            if (activeInvitation != null) {
+              activeInvitation = latestLobby.invitations
+                      .where((entry) => entry.id == activeInvitation!.id)
+                      .firstOrNull ??
+                  activeInvitation;
+            }
+            final latestAvailableRoles =
+                _availableRolesForLobby(latestLobby, mysteryCase);
+
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  16,
+                  16,
+                  16,
+                  16 + MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Container(
+                  decoration: MysteryDecor.panel(context, opacity: 0.96),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                activeInvitation == null
+                                    ? 'Gaeste einladen'
+                                    : 'Einladung teilen',
+                                style:
+                                    Theme.of(context).textTheme.headlineSmall,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          activeInvitation == null
+                              ? 'Lege einen Gast und eine feste Rolle fest. Danach kannst du den persoenlichen Link direkt verschicken.'
+                              : 'Oben findest du den persoenlichen Einladungslink. Darunter stehen die typischen Teiloptionen fuer deine Gaeste bereit.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        const SizedBox(height: 20),
+                        if (activeInvitation == null) ...[
+                          TextField(
+                            controller: guestController,
+                            decoration: const InputDecoration(
+                              labelText: 'Gastname',
+                              prefixIcon: Icon(Icons.person_add_alt_1_rounded),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          DropdownButtonFormField<String>(
+                            value: selectedRoleId,
+                            items: latestAvailableRoles
+                                .map(
+                                  (role) => DropdownMenuItem(
+                                    value: role.id,
+                                    child: Text(role.name),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: latestAvailableRoles.isEmpty
+                                ? null
+                                : (value) {
+                                    setModalState(() {
+                                      selectedRoleId = value;
+                                    });
+                                  },
+                            decoration: const InputDecoration(
+                              labelText: 'Charakterrolle',
+                              prefixIcon: Icon(Icons.theater_comedy_outlined),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          FilledButton.icon(
+                            onPressed: latestAvailableRoles.isEmpty
+                                ? null
+                                : () {
+                                    final roleId = selectedRoleId;
+                                    if (roleId == null) {
+                                      _showMessage(
+                                        'Bitte waehle eine freie Rolle aus.',
+                                      );
+                                      return;
+                                    }
+
+                                    final result = ref
+                                        .read(
+                                            mysteryControllerProvider.notifier)
+                                        .createInvitation(
+                                          code: widget.code,
+                                          recipientName: guestController.text,
+                                          roleId: roleId,
+                                        );
+
+                                    if (result.error != null) {
+                                      _showMessage(result.error!);
+                                      return;
+                                    }
+
+                                    setModalState(() {
+                                      activeInvitation = result.invitation;
+                                    });
+                                    _showMessage(
+                                      'Einladung erstellt. Der persoenliche Link ist jetzt bereit.',
+                                    );
+                                  },
+                            icon: const Icon(Icons.mark_email_unread_outlined),
+                            label: const Text('Einladung erstellen'),
+                          ),
+                          if (latestAvailableRoles.isEmpty) ...[
+                            const SizedBox(height: 14),
+                            const Text(
+                              'Alle Rollen sind bereits vergeben oder reserviert.',
+                            ),
+                          ],
+                        ] else ...[
+                          _InvitationReadyPanel(
+                            invitation: activeInvitation!,
+                            mysteryCase: mysteryCase,
+                            inviteLink: _buildInviteLink(
+                              latestLobby.code,
+                              activeInvitation!.id,
+                            ),
+                            onCopyLink: () => _copyToClipboard(
+                              _buildInviteLink(
+                                latestLobby.code,
+                                activeInvitation!.id,
+                              ),
+                            ),
+                            onShareTarget: (target) => _shareInvitation(
+                              latestLobby,
+                              mysteryCase,
+                              activeInvitation!,
+                              target,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    guestController.dispose();
+  }
+
+  Future<void> _copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    _showMessage('Link kopiert.');
+  }
+
+  Future<void> _shareInvitation(
+    LobbySession lobby,
+    MysteryCase mysteryCase,
+    LobbyInvitation invitation,
+    _ShareTarget target,
+  ) async {
+    final link = _buildInviteLink(lobby.code, invitation.id);
+    final message = _buildInviteMessage(mysteryCase, invitation, link);
+
+    switch (target) {
+      case _ShareTarget.system:
+        await SharePlus.instance.share(ShareParams(text: message));
+        return;
+      case _ShareTarget.whatsapp:
+        await _launchShareUrl(
+          Uri.parse('https://wa.me/?text=${Uri.encodeComponent(message)}'),
+        );
+        return;
+      case _ShareTarget.facebook:
+        await _launchShareUrl(
+          Uri.parse(
+            'https://www.facebook.com/sharer/sharer.php?u=${Uri.encodeComponent(link)}&quote=${Uri.encodeComponent("Du bist zu ${mysteryCase.title} eingeladen.")}',
+          ),
+        );
+        return;
+      case _ShareTarget.discord:
+        await SharePlus.instance.share(ShareParams(text: message));
+        _showMessage('Bitte waehle im Teilen-Menue Discord aus.');
+        return;
+      case _ShareTarget.instagram:
+        await SharePlus.instance.share(ShareParams(text: message));
+        _showMessage('Bitte waehle im Teilen-Menue Instagram aus.');
+        return;
     }
-    _showMessage('$added Demo-Gäste wurden hinzugefügt.');
+  }
+
+  Future<void> _launchShareUrl(Uri url) async {
+    final launched = await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!launched && mounted) {
+      _showMessage('Die Freigabe konnte nicht geoeffnet werden.');
+    }
+  }
+
+  String _buildInviteLink(String lobbyCode, String invitationId) {
+    return buildLobbyInviteLink(lobbyCode, invitationId: invitationId);
+  }
+
+  String _buildInviteMessage(
+    MysteryCase mysteryCase,
+    LobbyInvitation invitation,
+    String inviteLink,
+  ) {
+    return 'Du bist zu "${mysteryCase.title}" eingeladen. '
+        'Oeffne den persoenlichen Einladungslink und tritt der Lobby bei: '
+        '$inviteLink';
   }
 
   void _runHostAction(String? error) {
@@ -287,6 +547,23 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
     return null;
   }
 
+  List<MysteryRole> _availableRolesForLobby(
+    LobbySession lobby,
+    MysteryCase mysteryCase,
+  ) {
+    final reservedRoleIds = {
+      ...lobby.roleAssignments.values,
+      ...lobby.invitations
+          .where((invitation) =>
+              invitation.status == LobbyInvitationStatus.pending)
+          .map((invitation) => invitation.assignedRoleId),
+    };
+
+    return mysteryCase.roles
+        .where((role) => !reservedRoleIds.contains(role.id))
+        .toList();
+  }
+
   Duration _phaseRemaining(LobbySession lobby, GamePhase phase) {
     if (!lobby.hasStarted || lobby.phaseStartedAt == null) {
       return Duration(minutes: phase.durationMinutes);
@@ -304,12 +581,14 @@ class _LobbyHeaderInfo extends StatelessWidget {
     required this.mysteryCase,
     required this.currentPhase,
     required this.remaining,
+    required this.pendingInvitationCount,
   });
 
   final LobbySession lobby;
   final MysteryCase mysteryCase;
   final GamePhase currentPhase;
   final Duration remaining;
+  final int pendingInvitationCount;
 
   @override
   Widget build(BuildContext context) {
@@ -321,14 +600,20 @@ class _LobbyHeaderInfo extends StatelessWidget {
           runSpacing: 10,
           children: [
             InfoPill(
-                label: 'Code ${lobby.code}',
-                icon: Icons.key_rounded,
-                accent: Colors.white),
+              label: 'Code ${lobby.code}',
+              icon: Icons.key_rounded,
+              accent: Colors.white,
+            ),
             InfoPill(
               label: lobby.hasStarted
                   ? 'Phase ${lobby.phaseIndex + 1}'
                   : 'Noch nicht gestartet',
               icon: Icons.timer_outlined,
+              accent: Colors.white,
+            ),
+            InfoPill(
+              label: '$pendingInvitationCount offene Einladungen',
+              icon: Icons.mark_email_unread_outlined,
               accent: Colors.white,
             ),
           ],
@@ -366,8 +651,9 @@ class _LobbyHeaderInfo extends StatelessWidget {
             ),
             _LightMetric(label: 'Spieler', value: '${lobby.players.length}'),
             _LightMetric(
-                label: 'Hinweise offen',
-                value: '${lobby.revealedHintIds.length}'),
+              label: 'Hinweise offen',
+              value: '${lobby.revealedHintIds.length}',
+            ),
           ],
         ),
       ],
@@ -382,7 +668,7 @@ class _HostControls extends StatelessWidget {
     required this.onStart,
     required this.onAdvance,
     required this.onReshuffle,
-    required this.onAddGuests,
+    required this.onInviteGuests,
   });
 
   final LobbySession lobby;
@@ -390,7 +676,7 @@ class _HostControls extends StatelessWidget {
   final VoidCallback onStart;
   final VoidCallback onAdvance;
   final VoidCallback onReshuffle;
-  final VoidCallback onAddGuests;
+  final VoidCallback onInviteGuests;
 
   @override
   Widget build(BuildContext context) {
@@ -412,7 +698,7 @@ class _HostControls extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isHost
-                ? 'Starte Phasen, verteile Rollen neu und füge Demo-Gäste für Schnelltests hinzu.'
+                ? 'Starte Phasen, verteile Rollen neu und sende persoenliche Einladungen mit festen Charakterrollen.'
                 : 'Du siehst die Live-Session, aber nur der Host kann den Ablauf steuern.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppPalette.parchment.withOpacity(0.92),
@@ -429,7 +715,8 @@ class _HostControls extends StatelessWidget {
             onPressed: isHost && lobby.hasStarted ? onAdvance : null,
             icon: const Icon(Icons.skip_next_rounded),
             label: Text(
-                lobby.isCompleted ? 'Fall abgeschlossen' : 'Nächste Phase'),
+              lobby.isCompleted ? 'Fall abgeschlossen' : 'Naechste Phase',
+            ),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -439,12 +726,111 @@ class _HostControls extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: isHost ? onAddGuests : null,
-            icon: const Icon(Icons.group_add_rounded),
-            label: const Text('Demo-Gäste hinzufügen'),
+            onPressed: isHost ? onInviteGuests : null,
+            icon: const Icon(Icons.mark_email_unread_outlined),
+            label: const Text('Gaeste einladen'),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _WaitingPanel extends StatelessWidget {
+  const _WaitingPanel({
+    required this.mysteryCase,
+    required this.role,
+  });
+
+  final MysteryCase mysteryCase;
+  final MysteryRole? role;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          mysteryCase.description,
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            InfoPill(
+              label: mysteryCase.tagline,
+              icon: Icons.local_activity_outlined,
+            ),
+            if (role != null)
+              InfoPill(
+                label: 'Deine Rolle: ${role!.name}',
+                icon: Icons.person_pin_circle_outlined,
+              ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Bitte warte hier, bis der Spielleiter die Runde startet. Danach geht es mit den vollen Dossiers und dem Live-Ablauf weiter.',
+        ),
+      ],
+    );
+  }
+}
+
+class _InviteOverviewPanel extends StatelessWidget {
+  const _InviteOverviewPanel({
+    required this.lobby,
+    required this.pendingInvitationCount,
+    required this.onCopyLobbyLink,
+    required this.onOpenInvitationTool,
+  });
+
+  final LobbySession lobby;
+  final int pendingInvitationCount;
+  final VoidCallback onCopyLobbyLink;
+  final VoidCallback onOpenInvitationTool;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        QrImageView(
+          data: lobby.inviteLink,
+          version: QrVersions.auto,
+          size: 170,
+          backgroundColor: Colors.white,
+        ),
+        const SizedBox(height: 12),
+        SelectableText(
+          lobby.inviteLink,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          alignment: WrapAlignment.center,
+          children: [
+            OutlinedButton.icon(
+              onPressed: onCopyLobbyLink,
+              icon: const Icon(Icons.copy_rounded),
+              label: const Text('Lobby-Link kopieren'),
+            ),
+            FilledButton.icon(
+              onPressed: onOpenInvitationTool,
+              icon: const Icon(Icons.mail_lock_outlined),
+              label: Text(
+                pendingInvitationCount == 0
+                    ? 'Gaeste einladen'
+                    : 'Einladungstool oeffnen',
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -488,6 +874,136 @@ class _LightMetric extends StatelessWidget {
   }
 }
 
+class _InvitationReadyPanel extends StatelessWidget {
+  const _InvitationReadyPanel({
+    required this.invitation,
+    required this.mysteryCase,
+    required this.inviteLink,
+    required this.onCopyLink,
+    required this.onShareTarget,
+  });
+
+  final LobbyInvitation invitation;
+  final MysteryCase mysteryCase;
+  final String inviteLink;
+  final VoidCallback onCopyLink;
+  final ValueChanged<_ShareTarget> onShareTarget;
+
+  @override
+  Widget build(BuildContext context) {
+    final role = mysteryCase.roles
+        .where((entry) => entry.id == invitation.assignedRoleId)
+        .firstOrNull;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Einladungslink senden',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.white.withOpacity(0.04),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  InfoPill(
+                    label: invitation.recipientName,
+                    icon: Icons.person_outline_rounded,
+                  ),
+                  if (role != null)
+                    InfoPill(
+                      label: role.name,
+                      icon: Icons.theater_comedy_outlined,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SelectableText(inviteLink),
+              const SizedBox(height: 14),
+              FilledButton.icon(
+                onPressed: onCopyLink,
+                icon: const Icon(Icons.copy_rounded),
+                label: const Text('Link kopieren'),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        Text(
+          'Teilen ueber',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: _ShareTarget.values
+              .map(
+                (target) => _ShareActionTile(
+                  target: target,
+                  onTap: () => onShareTarget(target),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShareActionTile extends StatelessWidget {
+  const _ShareActionTile({
+    required this.target,
+    required this.onTap,
+  });
+
+  final _ShareTarget target;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 150,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: Colors.white.withOpacity(0.04),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(target.icon, color: AppPalette.gold),
+            const SizedBox(height: 12),
+            Text(
+              target.label,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              target.caption,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _RoleDossier extends StatelessWidget {
   const _RoleDossier({required this.role});
 
@@ -504,12 +1020,13 @@ class _RoleDossier extends StatelessWidget {
           children: [
             InfoPill(label: role.name, icon: Icons.person_pin_rounded),
             InfoPill(
-                label: role.outfit.palette.join(' / '),
-                icon: Icons.palette_outlined),
+              label: role.outfit.palette.join(' / '),
+              icon: Icons.palette_outlined,
+            ),
           ],
         ),
         const SizedBox(height: 16),
-        _DossierLine(title: 'Persönlichkeit', text: role.persona),
+        _DossierLine(title: 'Persoenlichkeit', text: role.persona),
         _DossierLine(title: 'Geheimnis', text: role.secret),
         _DossierLine(title: 'Motiv', text: role.motive),
         _DossierLine(title: 'Beziehungen', text: role.relationships),
@@ -517,8 +1034,10 @@ class _RoleDossier extends StatelessWidget {
         _DossierLine(title: 'Alibi', text: role.alibi),
         _DossierLine(title: 'Verdachtsmoment', text: role.suspicion),
         const SizedBox(height: 8),
-        Text('Versteckte Hinweise',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Versteckte Hinweise',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         ...role.hiddenClues.map(
           (clue) => Padding(
@@ -537,8 +1056,10 @@ class _RoleDossier extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Kostümempfehlung',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          'Kostuemempfehlung',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const SizedBox(height: 8),
         Text('Neutral: ${role.outfit.neutral}'),
         const SizedBox(height: 4),
@@ -660,62 +1181,156 @@ class _ChatPanel extends StatelessWidget {
 class _RosterPanel extends StatelessWidget {
   const _RosterPanel({
     required this.lobby,
+    required this.mysteryCase,
     required this.isHost,
     required this.onKick,
+    required this.onShareInvitation,
+    required this.onRevokeInvitation,
   });
 
   final LobbySession lobby;
+  final MysteryCase mysteryCase;
   final bool isHost;
   final ValueChanged<String> onKick;
+  final ValueChanged<LobbyInvitation> onShareInvitation;
+  final ValueChanged<String> onRevokeInvitation;
 
   @override
   Widget build(BuildContext context) {
+    final activeInvitations = lobby.invitations
+        .where(
+            (invitation) => invitation.status != LobbyInvitationStatus.revoked)
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: lobby.players.map((player) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            color: Colors.white.withOpacity(0.03),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: AppPalette.gold.withOpacity(0.18),
-                child: Text(
-                  player.name.characters.first.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppPalette.gold,
-                    fontWeight: FontWeight.w800,
+      children: [
+        ...lobby.players.map((player) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.white.withOpacity(0.03),
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: AppPalette.gold.withOpacity(0.18),
+                  child: Text(
+                    player.name.characters.first.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppPalette.gold,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        player.name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(player.isHost ? 'Host' : 'Ermittler'),
+                    ],
+                  ),
+                ),
+                if (player.isHost)
+                  const InfoPill(
+                      label: 'Host', icon: Icons.shield_moon_outlined),
+                if (!player.isHost && isHost)
+                  IconButton(
+                    onPressed: () => onKick(player.id),
+                    icon: const Icon(Icons.person_remove_alt_1_rounded),
+                    tooltip: 'Spieler entfernen',
+                  ),
+              ],
+            ),
+          );
+        }),
+        if (activeInvitations.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Einladungen',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 12),
+          ...activeInvitations.map(
+            (invitation) {
+              final role = mysteryCase.roles
+                  .where((entry) => entry.id == invitation.assignedRoleId)
+                  .firstOrNull;
+              final isPending =
+                  invitation.status == LobbyInvitationStatus.pending;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.white.withOpacity(0.03),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(player.name,
-                        style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text(player.isHost ? 'Host' : 'Ermittler'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                invitation.recipientName,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                role == null
+                                    ? 'Rolle wird vorbereitet'
+                                    : 'Reserviert fuer ${role.name}',
+                              ),
+                            ],
+                          ),
+                        ),
+                        InfoPill(
+                          label: isPending ? 'Offen' : 'Angenommen',
+                          icon: isPending
+                              ? Icons.mark_email_unread_outlined
+                              : Icons.check_circle_outline_rounded,
+                        ),
+                      ],
+                    ),
+                    if (isHost) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: () => onShareInvitation(invitation),
+                            icon: const Icon(Icons.share_rounded),
+                            label: const Text('Teilen'),
+                          ),
+                          if (isPending)
+                            OutlinedButton.icon(
+                              onPressed: () =>
+                                  onRevokeInvitation(invitation.id),
+                              icon: const Icon(Icons.close_rounded),
+                              label: const Text('Zurueckziehen'),
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
-              ),
-              if (player.isHost)
-                const InfoPill(label: 'Host', icon: Icons.shield_moon_outlined),
-              if (!player.isHost && isHost)
-                IconButton(
-                  onPressed: () => onKick(player.id),
-                  icon: const Icon(Icons.person_remove_alt_1_rounded),
-                  tooltip: 'Spieler entfernen',
-                ),
-            ],
+              );
+            },
           ),
-        );
-      }).toList(),
+        ],
+      ],
     );
   }
 }
@@ -740,9 +1355,19 @@ class _HintsPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InfoPill(
-          label: '${currentPhase.title} · ${currentPhase.musicCue}',
-          icon: Icons.music_note_rounded,
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            InfoPill(
+              label: currentPhase.title,
+              icon: Icons.movie_filter_outlined,
+            ),
+            InfoPill(
+              label: currentPhase.musicCue,
+              icon: Icons.music_note_rounded,
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         ...mysteryCase.hints.map((hint) {
@@ -777,8 +1402,9 @@ class _HintsPanel extends StatelessWidget {
                     ),
                     if (revealed)
                       const InfoPill(
-                          label: 'Freigegeben',
-                          icon: Icons.mark_email_read_rounded),
+                        label: 'Freigegeben',
+                        icon: Icons.mark_email_read_rounded,
+                      ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -801,5 +1427,52 @@ class _HintsPanel extends StatelessWidget {
         }),
       ],
     );
+  }
+}
+
+enum _ShareTarget {
+  system(
+    label: 'Mehr',
+    caption: 'System-Menue',
+    icon: Icons.ios_share_rounded,
+  ),
+  whatsapp(
+    label: 'WhatsApp',
+    caption: 'Direkt oeffnen',
+    icon: Icons.chat_rounded,
+  ),
+  instagram(
+    label: 'Instagram',
+    caption: 'Im Teilen-Menue',
+    icon: Icons.camera_alt_outlined,
+  ),
+  discord(
+    label: 'Discord',
+    caption: 'Im Teilen-Menue',
+    icon: Icons.forum_outlined,
+  ),
+  facebook(
+    label: 'Facebook',
+    caption: 'Direkt oeffnen',
+    icon: Icons.thumb_up_alt_outlined,
+  );
+
+  const _ShareTarget({
+    required this.label,
+    required this.caption,
+    required this.icon,
+  });
+
+  final String label;
+  final String caption;
+  final IconData icon;
+}
+
+extension _IterableFirstOrNull<T> on Iterable<T> {
+  T? get firstOrNull {
+    for (final item in this) {
+      return item;
+    }
+    return null;
   }
 }

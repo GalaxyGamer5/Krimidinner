@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -26,6 +27,25 @@ final mysteryCaseProvider =
 
 final mysteryControllerProvider =
     NotifierProvider<MysteryController, MysteryState>(MysteryController.new);
+
+String buildLobbyInviteLink(String code, {String? invitationId}) {
+  final normalizedCode = code.trim().toUpperCase();
+  final query = (invitationId == null || invitationId.isEmpty)
+      ? ''
+      : '?invite=$invitationId';
+  final joinPath = '/join/$normalizedCode$query';
+  final base = Uri.base;
+  final isHttp = base.scheme == 'http' || base.scheme == 'https';
+  if (!isHttp) {
+    return 'https://mysterynight.app$joinPath';
+  }
+
+  if (base.fragment.startsWith('/')) {
+    return '${base.origin}/#$joinPath';
+  }
+
+  return '${base.origin}$joinPath';
+}
 
 final lobbyProvider = Provider.family<LobbySession?, String>((ref, code) {
   final lobbies = ref.watch(mysteryControllerProvider).lobbies;
@@ -75,21 +95,21 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
   return [
     Achievement(
       title: 'Meisterdetektiv',
-      description: 'Schließe mehrere Fälle erfolgreich ab.',
+      description: 'Schliesse mehrere Faelle erfolgreich ab.',
       progress: stats.gamesPlayed.toDouble(),
       target: 8,
       icon: Icons.search_rounded,
     ),
     Achievement(
-      title: 'Unauffälliger Täter',
+      title: 'Unauffaelliger Taeter',
       description: 'Verwalte mehrere Rollen, ohne deine Spuren preiszugeben.',
       progress: state.roleArchive.length.toDouble(),
       target: 6,
       icon: Icons.visibility_off_rounded,
     ),
     Achievement(
-      title: 'Hinweisjäger',
-      description: 'Schalte Hinweise über mehrere Partien hinweg frei.',
+      title: 'Hinweisjaeger',
+      description: 'Schalte Hinweise ueber mehrere Partien hinweg frei.',
       progress: totalHints.toDouble(),
       target: 14,
       icon: Icons.local_police_rounded,
@@ -181,48 +201,16 @@ class SettingsController extends Notifier<AppSettings> {
 }
 
 class MysteryController extends Notifier<MysteryState> {
+  static const _stateKey = 'mystery_state_v2';
+
   final Uuid _uuid = const Uuid();
   final Random _random = Random();
 
-  static const List<String> _demoGuestNames = [
-    'Mara Quinn',
-    'Felix Ward',
-    'Lina Frost',
-    'Jonas Reed',
-    'Helena Shaw',
-    'Victor Hale',
-  ];
+  SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
 
   @override
   MysteryState build() {
-    return const MysteryState(
-      localAlias: 'Detective Nova',
-      lobbies: [],
-      roleArchive: [],
-      friends: [
-        FriendProfile(
-          name: 'Lea Stern',
-          favoriteScenario: 'Villa No. 7',
-          favoriteRole: 'Journalistin',
-          lastSeen: 'Heute, 19:10',
-          isOnline: true,
-        ),
-        FriendProfile(
-          name: 'Jonah Black',
-          favoriteScenario: 'Aurelia Express',
-          favoriteRole: 'Schaffner',
-          lastSeen: 'Gestern, 22:40',
-          isOnline: false,
-        ),
-        FriendProfile(
-          name: 'Sofia Vale',
-          favoriteScenario: 'Lantern Society',
-          favoriteRole: 'Archivarin',
-          lastSeen: 'Heute, 16:05',
-          isOnline: true,
-        ),
-      ],
-    );
+    return _restoreState(_prefs.getString(_stateKey)) ?? _defaultState();
   }
 
   void updateAlias(String alias) {
@@ -230,7 +218,7 @@ class MysteryController extends Notifier<MysteryState> {
     if (trimmed.isEmpty) {
       return;
     }
-    state = state.copyWith(localAlias: trimmed);
+    _updateState(state.copyWith(localAlias: trimmed));
   }
 
   String createLobby({
@@ -247,7 +235,7 @@ class MysteryController extends Notifier<MysteryState> {
       isOnline: true,
     );
     final code = _generateCode();
-    final inviteLink = 'https://mysterynight.app/join/$code';
+    final inviteLink = buildLobbyInviteLink(code);
 
     var lobby = LobbySession(
       code: code,
@@ -256,9 +244,10 @@ class MysteryController extends Notifier<MysteryState> {
       hostId: player.id,
       createdAt: DateTime.now(),
       players: [player],
+      invitations: const [],
       roleAssignments: const {},
       messages: [
-        _systemMessage('Lobby $code wurde eröffnet. Einladungslink bereit.'),
+        _systemMessage('Lobby $code wurde eroeffnet. Einladungslink bereit.'),
       ],
       revealedHintIds: const [],
       phaseIndex: 0,
@@ -266,14 +255,14 @@ class MysteryController extends Notifier<MysteryState> {
       isCompleted: false,
     );
 
-    lobby = _assignRoles(lobby, mysteryCase);
+    lobby = _assignRoleToPlayer(lobby, mysteryCase, player.id) ?? lobby;
 
     var nextState = state.copyWith(
       localAlias: trimmed,
       lobbies: [lobby, ...state.lobbies],
     );
     nextState = _rememberRole(nextState, lobby, trimmed);
-    state = nextState;
+    _updateState(nextState);
 
     return code;
   }
@@ -281,6 +270,7 @@ class MysteryController extends Notifier<MysteryState> {
   String? joinLobby({
     required String code,
     required String alias,
+    String? invitationId,
   }) {
     final lobbyIndex = _indexOfLobby(code.trim().toUpperCase());
     if (lobbyIndex == -1) {
@@ -295,7 +285,7 @@ class MysteryController extends Notifier<MysteryState> {
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der Fall für diese Lobby ist nicht mehr verfügbar.';
+      return 'Der Fall fuer diese Lobby ist nicht mehr verfuegbar.';
     }
 
     if (lobby.players.length >= mysteryCase.roles.length) {
@@ -309,6 +299,31 @@ class MysteryController extends Notifier<MysteryState> {
       return 'Dieser Spielername ist bereits vergeben.';
     }
 
+    LobbyInvitation? invitation;
+    final normalizedInvitationId = invitationId?.trim();
+    if (normalizedInvitationId != null && normalizedInvitationId.isNotEmpty) {
+      invitation = lobby.invitations
+          .where((entry) => entry.id == normalizedInvitationId)
+          .firstOrNull;
+      if (invitation == null) {
+        return 'Diese Einladung ist nicht mehr verfuegbar.';
+      }
+      switch (invitation.status) {
+        case LobbyInvitationStatus.pending:
+          break;
+        case LobbyInvitationStatus.accepted:
+          return 'Diese Einladung wurde bereits angenommen.';
+        case LobbyInvitationStatus.revoked:
+          return 'Diese Einladung wurde vom Spielleiter zurueckgezogen.';
+      }
+    }
+
+    final assignedRoleId = invitation?.assignedRoleId ??
+        _availableRoleIds(lobby, mysteryCase).firstOrNull;
+    if (assignedRoleId == null) {
+      return 'Alle Rollen in dieser Lobby sind bereits vergeben oder reserviert.';
+    }
+
     final player = LobbyPlayer(
       id: _uuid.v4(),
       name: trimmedAlias,
@@ -317,14 +332,36 @@ class MysteryController extends Notifier<MysteryState> {
       isOnline: true,
     );
 
-    var updatedLobby = lobby.copyWith(
+    final updatedInvitations = invitation == null
+        ? lobby.invitations
+        : lobby.invitations
+            .map(
+              (entry) => entry.id == invitation!.id
+                  ? entry.copyWith(
+                      status: LobbyInvitationStatus.accepted,
+                      acceptedAt: DateTime.now(),
+                      acceptedByPlayerId: player.id,
+                    )
+                  : entry,
+            )
+            .toList();
+
+    final updatedLobby = lobby.copyWith(
       players: [...lobby.players, player],
+      invitations: updatedInvitations,
+      roleAssignments: {
+        ...lobby.roleAssignments,
+        player.id: assignedRoleId,
+      },
       messages: [
         ...lobby.messages,
-        _systemMessage('$trimmedAlias ist der Lobby beigetreten.'),
+        _systemMessage(
+          invitation == null
+              ? '$trimmedAlias ist der Lobby beigetreten.'
+              : '$trimmedAlias hat die Einladung angenommen und ist der Lobby beigetreten.',
+        ),
       ],
     );
-    updatedLobby = _assignRoles(updatedLobby, mysteryCase);
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
@@ -334,70 +371,134 @@ class MysteryController extends Notifier<MysteryState> {
       lobbies: updatedLobbies,
     );
     nextState = _rememberRole(nextState, updatedLobby, trimmedAlias);
-    state = nextState;
+    _updateState(nextState);
 
     return null;
   }
 
-  int addDemoGuests(String code) {
+  ({String? error, LobbyInvitation? invitation}) createInvitation({
+    required String code,
+    required String recipientName,
+    required String roleId,
+  }) {
     final lobbyIndex = _indexOfLobby(code);
     if (lobbyIndex == -1) {
-      return 0;
+      return (error: 'Lobby nicht gefunden.', invitation: null);
     }
 
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 0;
+      return (error: 'Der zugehoerige Fall fehlt.', invitation: null);
     }
 
-    final slots = mysteryCase.roles.length - lobby.players.length;
-    if (slots <= 0) {
-      return 0;
+    final trimmedRecipient = recipientName.trim();
+    if (trimmedRecipient.isEmpty) {
+      return (error: 'Bitte gib einen Gastnamen ein.', invitation: null);
     }
 
-    final availableNames = _demoGuestNames.where(
-      (name) => !lobby.players.any(
-        (player) => player.name.toLowerCase() == name.toLowerCase(),
-      ),
+    final roleExists = mysteryCase.roles.any((role) => role.id == roleId);
+    if (!roleExists) {
+      return (
+        error: 'Die gewaehlte Rolle ist nicht mehr verfuegbar.',
+        invitation: null
+      );
+    }
+
+    final duplicatePlayer = lobby.players.any(
+      (player) => player.name.toLowerCase() == trimmedRecipient.toLowerCase(),
+    );
+    if (duplicatePlayer) {
+      return (
+        error: 'Dieser Name ist in der Lobby bereits vergeben.',
+        invitation: null
+      );
+    }
+
+    final duplicateInvite = lobby.invitations.any(
+      (invitation) =>
+          invitation.status == LobbyInvitationStatus.pending &&
+          invitation.recipientName.toLowerCase() ==
+              trimmedRecipient.toLowerCase(),
+    );
+    if (duplicateInvite) {
+      return (
+        error: 'Fuer diesen Gast gibt es bereits eine offene Einladung.',
+        invitation: null,
+      );
+    }
+
+    final availableRoleIds = _availableRoleIds(lobby, mysteryCase);
+    if (!availableRoleIds.contains(roleId)) {
+      return (
+        error: 'Diese Rolle ist bereits vergeben oder reserviert.',
+        invitation: null,
+      );
+    }
+
+    final invitation = LobbyInvitation(
+      id: _uuid.v4(),
+      recipientName: trimmedRecipient,
+      assignedRoleId: roleId,
+      createdAt: DateTime.now(),
+      status: LobbyInvitationStatus.pending,
     );
 
-    final toAdd = availableNames.take(min(slots, 3)).toList();
-    if (toAdd.isEmpty) {
-      return 0;
-    }
-
-    final guests = toAdd
-        .map(
-          (name) => LobbyPlayer(
-            id: _uuid.v4(),
-            name: name,
-            joinedAt: DateTime.now(),
-            isHost: false,
-            isOnline: true,
-          ),
-        )
-        .toList();
-
-    var updatedLobby = lobby.copyWith(
-      players: [...lobby.players, ...guests],
+    final updatedLobby = lobby.copyWith(
+      invitations: [invitation, ...lobby.invitations],
       messages: [
         ...lobby.messages,
-        _systemMessage(
-          '${guests.length} Demo-Gäste wurden für den Schnelltest hinzugefügt.',
-        ),
+        _systemMessage('Einladung fuer $trimmedRecipient wurde erstellt.'),
       ],
     );
-    updatedLobby = _assignRoles(updatedLobby, mysteryCase);
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
+    _updateState(state.copyWith(lobbies: updatedLobbies));
 
-    var nextState = state.copyWith(lobbies: updatedLobbies);
-    nextState = _rememberRole(nextState, updatedLobby, state.localAlias);
-    state = nextState;
+    return (error: null, invitation: invitation);
+  }
 
-    return guests.length;
+  String? revokeInvitation(String code, String invitationId) {
+    final lobbyIndex = _indexOfLobby(code);
+    if (lobbyIndex == -1) {
+      return 'Lobby nicht gefunden.';
+    }
+
+    final lobby = state.lobbies[lobbyIndex];
+    final invitation = lobby.invitations
+        .where((entry) => entry.id == invitationId)
+        .firstOrNull;
+    if (invitation == null) {
+      return 'Einladung nicht gefunden.';
+    }
+    if (invitation.status == LobbyInvitationStatus.accepted) {
+      return 'Bereits angenommene Einladungen koennen nicht zurueckgezogen werden.';
+    }
+    if (invitation.status == LobbyInvitationStatus.revoked) {
+      return null;
+    }
+
+    final updatedLobby = lobby.copyWith(
+      invitations: lobby.invitations
+          .map(
+            (entry) => entry.id == invitationId
+                ? entry.copyWith(status: LobbyInvitationStatus.revoked)
+                : entry,
+          )
+          .toList(),
+      messages: [
+        ...lobby.messages,
+        _systemMessage(
+          'Die Einladung fuer ${invitation.recipientName} wurde zurueckgezogen.',
+        ),
+      ],
+    );
+
+    final updatedLobbies = [...state.lobbies];
+    updatedLobbies[lobbyIndex] = updatedLobby;
+    _updateState(state.copyWith(lobbies: updatedLobbies));
+    return null;
   }
 
   String? reshuffleRoles(String code) {
@@ -409,10 +510,14 @@ class MysteryController extends Notifier<MysteryState> {
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehörige Fall fehlt.';
+      return 'Der zugehoerige Fall fehlt.';
     }
 
-    var updatedLobby = _assignRoles(lobby, mysteryCase).copyWith(
+    final updatedLobby = _assignRoles(
+      lobby,
+      mysteryCase,
+      preserveInvitationLocks: true,
+    ).copyWith(
       messages: [
         ...lobby.messages,
         _systemMessage('Die Rollen wurden neu verteilt.'),
@@ -424,7 +529,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     var nextState = state.copyWith(lobbies: updatedLobbies);
     nextState = _rememberRole(nextState, updatedLobby, state.localAlias);
-    state = nextState;
+    _updateState(nextState);
 
     return null;
   }
@@ -442,7 +547,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehörige Fall fehlt.';
+      return 'Der zugehoerige Fall fehlt.';
     }
 
     var updatedLobby = lobby.copyWith(
@@ -460,7 +565,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
-    state = state.copyWith(lobbies: updatedLobbies);
+    _updateState(state.copyWith(lobbies: updatedLobbies));
 
     return null;
   }
@@ -474,7 +579,7 @@ class MysteryController extends Notifier<MysteryState> {
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehörige Fall fehlt.';
+      return 'Der zugehoerige Fall fehlt.';
     }
 
     if (!lobby.hasStarted) {
@@ -482,7 +587,7 @@ class MysteryController extends Notifier<MysteryState> {
     }
 
     if (lobby.isCompleted) {
-      return 'Dieses Spiel wurde bereits aufgelöst.';
+      return 'Dieses Spiel wurde bereits aufgeloest.';
     }
 
     if (lobby.phaseIndex >= mysteryCase.phases.length - 1) {
@@ -490,12 +595,12 @@ class MysteryController extends Notifier<MysteryState> {
         isCompleted: true,
         messages: [
           ...lobby.messages,
-          _systemMessage('Die Auflösung ist abgeschlossen. Fall geschlossen.'),
+          _systemMessage('Die Aufloesung ist abgeschlossen. Fall geschlossen.'),
         ],
       );
       final updatedLobbies = [...state.lobbies];
       updatedLobbies[lobbyIndex] = completedLobby;
-      state = state.copyWith(lobbies: updatedLobbies);
+      _updateState(state.copyWith(lobbies: updatedLobbies));
       return null;
     }
 
@@ -513,7 +618,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
-    state = state.copyWith(lobbies: updatedLobbies);
+    _updateState(state.copyWith(lobbies: updatedLobbies));
     return null;
   }
 
@@ -530,7 +635,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehörige Fall fehlt.';
+      return 'Der zugehoerige Fall fehlt.';
     }
 
     final hint =
@@ -549,7 +654,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
-    state = state.copyWith(lobbies: updatedLobbies);
+    _updateState(state.copyWith(lobbies: updatedLobbies));
     return null;
   }
 
@@ -569,23 +674,33 @@ class MysteryController extends Notifier<MysteryState> {
       return 'Der Host kann nicht entfernt werden.';
     }
 
-    final mysteryCase = findMysteryCaseById(lobby.caseId);
-    if (mysteryCase == null) {
-      return 'Der zugehörige Fall fehlt.';
-    }
+    final updatedInvitations = lobby.invitations
+        .map(
+          (entry) => entry.acceptedByPlayerId == playerId
+              ? entry.copyWith(
+                  status: LobbyInvitationStatus.revoked,
+                  clearAcceptedAt: true,
+                  clearAcceptedByPlayerId: true,
+                )
+              : entry,
+        )
+        .toList();
 
-    var updatedLobby = lobby.copyWith(
+    final updatedAssignments = {...lobby.roleAssignments}..remove(playerId);
+
+    final updatedLobby = lobby.copyWith(
       players: lobby.players.where((entry) => entry.id != playerId).toList(),
+      invitations: updatedInvitations,
+      roleAssignments: updatedAssignments,
       messages: [
         ...lobby.messages,
         _systemMessage('${player.name} wurde aus der Lobby entfernt.'),
       ],
     );
-    updatedLobby = _assignRoles(updatedLobby, mysteryCase);
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
-    state = state.copyWith(lobbies: updatedLobbies);
+    _updateState(state.copyWith(lobbies: updatedLobbies));
     return null;
   }
 
@@ -620,7 +735,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
-    state = state.copyWith(lobbies: updatedLobbies);
+    _updateState(state.copyWith(lobbies: updatedLobbies));
   }
 
   int _indexOfLobby(String code) {
@@ -641,16 +756,86 @@ class MysteryController extends Notifier<MysteryState> {
     ).join();
   }
 
-  LobbySession _assignRoles(LobbySession lobby, MysteryCase mysteryCase) {
-    final roles = [...mysteryCase.roles];
-    roles.shuffle(Random(DateTime.now().microsecondsSinceEpoch));
-
+  LobbySession _assignRoles(
+    LobbySession lobby,
+    MysteryCase mysteryCase, {
+    bool preserveInvitationLocks = false,
+  }) {
     final assignments = <String, String>{};
-    for (var index = 0; index < lobby.players.length; index++) {
-      assignments[lobby.players[index].id] = roles[index].id;
+    final reservedRoleIds = <String>{};
+
+    if (preserveInvitationLocks) {
+      for (final invitation in lobby.invitations) {
+        if (invitation.status == LobbyInvitationStatus.pending) {
+          reservedRoleIds.add(invitation.assignedRoleId);
+        }
+        if (invitation.status == LobbyInvitationStatus.accepted &&
+            invitation.acceptedByPlayerId != null &&
+            lobby.players.any(
+              (player) => player.id == invitation.acceptedByPlayerId,
+            )) {
+          assignments[invitation.acceptedByPlayerId!] =
+              invitation.assignedRoleId;
+        }
+      }
+    }
+
+    final availableRoleIds = mysteryCase.roles
+        .map((role) => role.id)
+        .where(
+          (roleId) =>
+              !assignments.containsValue(roleId) &&
+              !reservedRoleIds.contains(roleId),
+        )
+        .toList()
+      ..shuffle(Random(DateTime.now().microsecondsSinceEpoch));
+
+    for (final player in lobby.players) {
+      if (assignments.containsKey(player.id)) {
+        continue;
+      }
+      if (availableRoleIds.isEmpty) {
+        break;
+      }
+      assignments[player.id] = availableRoleIds.removeAt(0);
     }
 
     return lobby.copyWith(roleAssignments: assignments);
+  }
+
+  LobbySession? _assignRoleToPlayer(
+    LobbySession lobby,
+    MysteryCase mysteryCase,
+    String playerId, {
+    String? preferredRoleId,
+  }) {
+    final availableRoleIds = _availableRoleIds(lobby, mysteryCase);
+    final selectedRoleId = preferredRoleId ?? availableRoleIds.firstOrNull;
+    if (selectedRoleId == null || !availableRoleIds.contains(selectedRoleId)) {
+      return null;
+    }
+
+    return lobby.copyWith(
+      roleAssignments: {
+        ...lobby.roleAssignments,
+        playerId: selectedRoleId,
+      },
+    );
+  }
+
+  List<String> _availableRoleIds(LobbySession lobby, MysteryCase mysteryCase) {
+    final unavailableRoleIds = {
+      ...lobby.roleAssignments.values,
+      ...lobby.invitations
+          .where((invitation) =>
+              invitation.status == LobbyInvitationStatus.pending)
+          .map((invitation) => invitation.assignedRoleId),
+    };
+
+    return mysteryCase.roles
+        .map((role) => role.id)
+        .where((roleId) => !unavailableRoleIds.contains(roleId))
+        .toList();
   }
 
   LobbySession _applyPhaseHints(LobbySession lobby, MysteryCase mysteryCase) {
@@ -733,6 +918,334 @@ class MysteryController extends Notifier<MysteryState> {
       body: body,
       createdAt: DateTime.now(),
       type: ChatMessageType.system,
+    );
+  }
+
+  void _updateState(MysteryState nextState) {
+    state = nextState;
+    _prefs.setString(_stateKey, jsonEncode(_serializeState(nextState)));
+  }
+
+  MysteryState _defaultState() {
+    return MysteryState(
+      localAlias: 'Detective Nova',
+      lobbies: const [],
+      roleArchive: const [],
+      friends: _defaultFriends(),
+    );
+  }
+
+  List<FriendProfile> _defaultFriends() {
+    return const [
+      FriendProfile(
+        name: 'Lea Stern',
+        favoriteScenario: 'Villa No. 7',
+        favoriteRole: 'Journalistin',
+        lastSeen: 'Heute, 19:10',
+        isOnline: true,
+      ),
+      FriendProfile(
+        name: 'Jonah Black',
+        favoriteScenario: 'Aurelia Express',
+        favoriteRole: 'Schaffner',
+        lastSeen: 'Gestern, 22:40',
+        isOnline: false,
+      ),
+      FriendProfile(
+        name: 'Sofia Vale',
+        favoriteScenario: 'Lantern Society',
+        favoriteRole: 'Archivarin',
+        lastSeen: 'Heute, 16:05',
+        isOnline: true,
+      ),
+    ];
+  }
+
+  MysteryState? _restoreState(String? rawState) {
+    if (rawState == null || rawState.isEmpty) {
+      return null;
+    }
+
+    try {
+      final decoded = jsonDecode(rawState);
+      if (decoded is! Map) {
+        return null;
+      }
+
+      final lobbies = (decoded['lobbies'] as List<dynamic>? ?? const [])
+          .map(_deserializeLobby)
+          .whereType<LobbySession>()
+          .toList();
+      final roleArchive = (decoded['roleArchive'] as List<dynamic>? ?? const [])
+          .map(_deserializeRoleArchiveEntry)
+          .whereType<RoleArchiveEntry>()
+          .toList();
+
+      return MysteryState(
+        localAlias: decoded['localAlias'] as String? ?? 'Detective Nova',
+        lobbies: lobbies,
+        roleArchive: roleArchive,
+        friends: _defaultFriends(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Map<String, dynamic> _serializeState(MysteryState mysteryState) {
+    return {
+      'localAlias': mysteryState.localAlias,
+      'lobbies': mysteryState.lobbies.map(_serializeLobby).toList(),
+      'roleArchive':
+          mysteryState.roleArchive.map(_serializeRoleArchiveEntry).toList(),
+    };
+  }
+
+  Map<String, dynamic> _serializeLobby(LobbySession lobby) {
+    return {
+      'code': lobby.code,
+      'caseId': lobby.caseId,
+      'inviteLink': lobby.inviteLink,
+      'hostId': lobby.hostId,
+      'createdAt': lobby.createdAt.toIso8601String(),
+      'players': lobby.players.map(_serializePlayer).toList(),
+      'invitations': lobby.invitations.map(_serializeInvitation).toList(),
+      'roleAssignments': lobby.roleAssignments,
+      'messages': lobby.messages.map(_serializeMessage).toList(),
+      'revealedHintIds': lobby.revealedHintIds,
+      'phaseIndex': lobby.phaseIndex,
+      'hasStarted': lobby.hasStarted,
+      'isCompleted': lobby.isCompleted,
+      'phaseStartedAt': lobby.phaseStartedAt?.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _serializePlayer(LobbyPlayer player) {
+    return {
+      'id': player.id,
+      'name': player.name,
+      'joinedAt': player.joinedAt.toIso8601String(),
+      'isHost': player.isHost,
+      'isOnline': player.isOnline,
+    };
+  }
+
+  Map<String, dynamic> _serializeInvitation(LobbyInvitation invitation) {
+    return {
+      'id': invitation.id,
+      'recipientName': invitation.recipientName,
+      'assignedRoleId': invitation.assignedRoleId,
+      'createdAt': invitation.createdAt.toIso8601String(),
+      'status': invitation.status.name,
+      'acceptedAt': invitation.acceptedAt?.toIso8601String(),
+      'acceptedByPlayerId': invitation.acceptedByPlayerId,
+    };
+  }
+
+  Map<String, dynamic> _serializeMessage(ChatMessage message) {
+    return {
+      'id': message.id,
+      'sender': message.sender,
+      'body': message.body,
+      'createdAt': message.createdAt.toIso8601String(),
+      'type': message.type.name,
+    };
+  }
+
+  Map<String, dynamic> _serializeRoleArchiveEntry(RoleArchiveEntry entry) {
+    return {
+      'lobbyCode': entry.lobbyCode,
+      'playerName': entry.playerName,
+      'caseTitle': entry.caseTitle,
+      'characterName': entry.characterName,
+      'signature': entry.signature,
+      'goal': entry.goal,
+      'unlockedAt': entry.unlockedAt.toIso8601String(),
+    };
+  }
+
+  LobbySession? _deserializeLobby(dynamic rawLobby) {
+    if (rawLobby is! Map) {
+      return null;
+    }
+
+    final code = rawLobby['code'];
+    final caseId = rawLobby['caseId'];
+    final inviteLink = rawLobby['inviteLink'];
+    final hostId = rawLobby['hostId'];
+    final createdAt = DateTime.tryParse(rawLobby['createdAt'] as String? ?? '');
+    if (code is! String ||
+        caseId is! String ||
+        inviteLink is! String ||
+        hostId is! String ||
+        createdAt == null) {
+      return null;
+    }
+
+    final players = (rawLobby['players'] as List<dynamic>? ?? const [])
+        .map(_deserializePlayer)
+        .whereType<LobbyPlayer>()
+        .toList();
+    final invitations = (rawLobby['invitations'] as List<dynamic>? ?? const [])
+        .map(_deserializeInvitation)
+        .whereType<LobbyInvitation>()
+        .toList();
+    final messages = (rawLobby['messages'] as List<dynamic>? ?? const [])
+        .map(_deserializeMessage)
+        .whereType<ChatMessage>()
+        .toList();
+
+    final roleAssignments = <String, String>{};
+    final rawAssignments = rawLobby['roleAssignments'];
+    if (rawAssignments is Map) {
+      for (final entry in rawAssignments.entries) {
+        if (entry.key is String && entry.value is String) {
+          roleAssignments[entry.key as String] = entry.value as String;
+        }
+      }
+    }
+
+    final revealedHintIds =
+        (rawLobby['revealedHintIds'] as List<dynamic>? ?? const [])
+            .whereType<String>()
+            .toList();
+
+    return LobbySession(
+      code: code,
+      caseId: caseId,
+      inviteLink: inviteLink,
+      hostId: hostId,
+      createdAt: createdAt,
+      players: players,
+      invitations: invitations,
+      roleAssignments: roleAssignments,
+      messages: messages,
+      revealedHintIds: revealedHintIds,
+      phaseIndex: (rawLobby['phaseIndex'] as num?)?.toInt() ?? 0,
+      hasStarted: rawLobby['hasStarted'] as bool? ?? false,
+      isCompleted: rawLobby['isCompleted'] as bool? ?? false,
+      phaseStartedAt:
+          DateTime.tryParse(rawLobby['phaseStartedAt'] as String? ?? ''),
+    );
+  }
+
+  LobbyPlayer? _deserializePlayer(dynamic rawPlayer) {
+    if (rawPlayer is! Map) {
+      return null;
+    }
+
+    final id = rawPlayer['id'];
+    final name = rawPlayer['name'];
+    final joinedAt = DateTime.tryParse(rawPlayer['joinedAt'] as String? ?? '');
+    if (id is! String || name is! String || joinedAt == null) {
+      return null;
+    }
+
+    return LobbyPlayer(
+      id: id,
+      name: name,
+      joinedAt: joinedAt,
+      isHost: rawPlayer['isHost'] as bool? ?? false,
+      isOnline: rawPlayer['isOnline'] as bool? ?? true,
+    );
+  }
+
+  LobbyInvitation? _deserializeInvitation(dynamic rawInvitation) {
+    if (rawInvitation is! Map) {
+      return null;
+    }
+
+    final id = rawInvitation['id'];
+    final recipientName = rawInvitation['recipientName'];
+    final assignedRoleId = rawInvitation['assignedRoleId'];
+    final createdAt =
+        DateTime.tryParse(rawInvitation['createdAt'] as String? ?? '');
+    final rawStatus = rawInvitation['status'] as String?;
+    final status = LobbyInvitationStatus.values
+        .where((entry) => entry.name == rawStatus)
+        .firstOrNull;
+    if (id is! String ||
+        recipientName is! String ||
+        assignedRoleId is! String ||
+        createdAt == null ||
+        status == null) {
+      return null;
+    }
+
+    return LobbyInvitation(
+      id: id,
+      recipientName: recipientName,
+      assignedRoleId: assignedRoleId,
+      createdAt: createdAt,
+      status: status,
+      acceptedAt:
+          DateTime.tryParse(rawInvitation['acceptedAt'] as String? ?? ''),
+      acceptedByPlayerId: rawInvitation['acceptedByPlayerId'] as String?,
+    );
+  }
+
+  ChatMessage? _deserializeMessage(dynamic rawMessage) {
+    if (rawMessage is! Map) {
+      return null;
+    }
+
+    final id = rawMessage['id'];
+    final sender = rawMessage['sender'];
+    final body = rawMessage['body'];
+    final createdAt =
+        DateTime.tryParse(rawMessage['createdAt'] as String? ?? '');
+    final rawType = rawMessage['type'] as String?;
+    final type = ChatMessageType.values
+        .where((entry) => entry.name == rawType)
+        .firstOrNull;
+    if (id is! String ||
+        sender is! String ||
+        body is! String ||
+        createdAt == null ||
+        type == null) {
+      return null;
+    }
+
+    return ChatMessage(
+      id: id,
+      sender: sender,
+      body: body,
+      createdAt: createdAt,
+      type: type,
+    );
+  }
+
+  RoleArchiveEntry? _deserializeRoleArchiveEntry(dynamic rawEntry) {
+    if (rawEntry is! Map) {
+      return null;
+    }
+
+    final lobbyCode = rawEntry['lobbyCode'];
+    final playerName = rawEntry['playerName'];
+    final caseTitle = rawEntry['caseTitle'];
+    final characterName = rawEntry['characterName'];
+    final signature = rawEntry['signature'];
+    final goal = rawEntry['goal'];
+    final unlockedAt =
+        DateTime.tryParse(rawEntry['unlockedAt'] as String? ?? '');
+    if (lobbyCode is! String ||
+        playerName is! String ||
+        caseTitle is! String ||
+        characterName is! String ||
+        signature is! String ||
+        goal is! String ||
+        unlockedAt == null) {
+      return null;
+    }
+
+    return RoleArchiveEntry(
+      lobbyCode: lobbyCode,
+      playerName: playerName,
+      caseTitle: caseTitle,
+      characterName: characterName,
+      signature: signature,
+      goal: goal,
+      unlockedAt: unlockedAt,
     );
   }
 }

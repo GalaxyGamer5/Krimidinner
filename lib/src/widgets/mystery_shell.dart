@@ -107,6 +107,9 @@ class MysteryShell extends StatelessWidget {
     if (location.startsWith('/lobbies')) {
       return 2;
     }
+    if (location.startsWith('/invite')) {
+      return 2;
+    }
     if (location.startsWith('/roles')) {
       return 3;
     }
@@ -125,6 +128,9 @@ class MysteryShell extends StatelessWidget {
     }
     if (location.startsWith('/lobbies/room/')) {
       return 'Live-Lobby';
+    }
+    if (location.startsWith('/invite/')) {
+      return 'Einladung';
     }
     if (location.startsWith('/lobbies')) {
       return 'Lobby-System';

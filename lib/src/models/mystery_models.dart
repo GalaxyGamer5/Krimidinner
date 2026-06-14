@@ -286,6 +286,8 @@ class LobbyPlayer {
 
 enum ChatMessageType { lobby, system, role }
 
+enum LobbyInvitationStatus { pending, accepted, revoked }
+
 @immutable
 class ChatMessage {
   const ChatMessage({
@@ -304,6 +306,51 @@ class ChatMessage {
 }
 
 @immutable
+class LobbyInvitation {
+  const LobbyInvitation({
+    required this.id,
+    required this.recipientName,
+    required this.assignedRoleId,
+    required this.createdAt,
+    required this.status,
+    this.acceptedAt,
+    this.acceptedByPlayerId,
+  });
+
+  final String id;
+  final String recipientName;
+  final String assignedRoleId;
+  final DateTime createdAt;
+  final LobbyInvitationStatus status;
+  final DateTime? acceptedAt;
+  final String? acceptedByPlayerId;
+
+  LobbyInvitation copyWith({
+    String? id,
+    String? recipientName,
+    String? assignedRoleId,
+    DateTime? createdAt,
+    LobbyInvitationStatus? status,
+    DateTime? acceptedAt,
+    String? acceptedByPlayerId,
+    bool clearAcceptedAt = false,
+    bool clearAcceptedByPlayerId = false,
+  }) {
+    return LobbyInvitation(
+      id: id ?? this.id,
+      recipientName: recipientName ?? this.recipientName,
+      assignedRoleId: assignedRoleId ?? this.assignedRoleId,
+      createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
+      acceptedAt: clearAcceptedAt ? null : acceptedAt ?? this.acceptedAt,
+      acceptedByPlayerId: clearAcceptedByPlayerId
+          ? null
+          : acceptedByPlayerId ?? this.acceptedByPlayerId,
+    );
+  }
+}
+
+@immutable
 class LobbySession {
   const LobbySession({
     required this.code,
@@ -312,6 +359,7 @@ class LobbySession {
     required this.hostId,
     required this.createdAt,
     required this.players,
+    required this.invitations,
     required this.roleAssignments,
     required this.messages,
     required this.revealedHintIds,
@@ -327,6 +375,7 @@ class LobbySession {
   final String hostId;
   final DateTime createdAt;
   final List<LobbyPlayer> players;
+  final List<LobbyInvitation> invitations;
   final Map<String, String> roleAssignments;
   final List<ChatMessage> messages;
   final List<String> revealedHintIds;
@@ -342,6 +391,7 @@ class LobbySession {
     String? hostId,
     DateTime? createdAt,
     List<LobbyPlayer>? players,
+    List<LobbyInvitation>? invitations,
     Map<String, String>? roleAssignments,
     List<ChatMessage>? messages,
     List<String>? revealedHintIds,
@@ -358,6 +408,7 @@ class LobbySession {
       hostId: hostId ?? this.hostId,
       createdAt: createdAt ?? this.createdAt,
       players: players ?? this.players,
+      invitations: invitations ?? this.invitations,
       roleAssignments: roleAssignments ?? this.roleAssignments,
       messages: messages ?? this.messages,
       revealedHintIds: revealedHintIds ?? this.revealedHintIds,
