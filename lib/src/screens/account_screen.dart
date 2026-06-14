@@ -52,7 +52,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
           SectionPanel(
             title: 'Profil und Ermittlungshistorie',
             subtitle:
-                'Passe deinen Anzeigenamen an, behalte deine Staerken im Blick und lade Freunde zu neuen Faellen ein.',
+                'Passe deinen Anzeigenamen an, behalte deine Stärken im Blick und lade Freunde zu neuen Fällen ein.',
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 860;
@@ -89,7 +89,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
               SectionPanel(
                 title: 'Freundesystem',
                 subtitle:
-                    'Online-Status, Lieblingsfaelle und letzte Aktivitaet liegen bereit fuer spaetere Einladungs- und Matchmaking-Flows.',
+                    'Online-Status, Lieblingsfälle und letzte Aktivität liegen bereit für spätere Einladungs- und Matchmaking-Flows.',
                 child: Column(
                   children: state.friends.map((friend) {
                     return Container(
@@ -147,14 +147,14 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
               SectionPanel(
                 title: 'Einstellungen',
                 subtitle:
-                    'Dark Mode, Light Mode, Sprache, Lautstaerken und Hinweise bleiben lokal gespeichert.',
+                    'Dark Mode, Light Mode, Sprache, Lautstärken und Hinweise bleiben lokal gespeichert.',
                 child: _SettingsPanel(settings: settings),
               ),
             ],
             secondary: [
               SectionPanel(
                 title: 'Achievements',
-                subtitle: 'Fortschritt ueber alle Lobbys und Rollen hinweg.',
+                subtitle: 'Fortschritt über alle Lobbys und Rollen hinweg.',
                 child: Column(
                   children: achievements.map((achievement) {
                     return Container(
@@ -203,7 +203,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                     Text('MYSTERY NIGHT Demo Build'),
                     SizedBox(height: 8),
                     Text(
-                      'Diese Beispielanwendung speichert in diesem Projekt nur lokale Demo-Daten fuer Rollen, Lobbys und Einstellungen. Produktiv lassen sich Authentifizierung, Firestore, Storage und Push-Benachrichtigungen im gleichen Architekturrahmen anschliessen.',
+                      'Diese Beispielanwendung speichert in diesem Projekt nur lokale Demo-Daten für Rollen, Lobbys und Einstellungen. Produktiv lassen sich Authentifizierung, Firestore, Storage und Push-Benachrichtigungen im gleichen Architekturrahmen anschließen.',
                     ),
                     SizedBox(height: 12),
                     Text('Kontakt: studio@mysterynight.app'),
@@ -346,13 +346,12 @@ class _SettingsPanel extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 18),
-        Text('Musiklautstaerke',
-            style: Theme.of(context).textTheme.titleMedium),
+        Text('Musiklautstärke', style: Theme.of(context).textTheme.titleMedium),
         Slider(
           value: settings.musicVolume,
           onChanged: controller.setMusicVolume,
         ),
-        Text('Effektlautstaerke',
+        Text('Effektlautstärke',
             style: Theme.of(context).textTheme.titleMedium),
         Slider(
           value: settings.sfxVolume,

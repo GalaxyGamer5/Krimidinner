@@ -28,7 +28,7 @@ class HomeScreen extends ConsumerWidget {
           SectionPanel(
             title: 'Der Abend beginnt im Nebel',
             subtitle:
-                'Plane neue Krimi-Runden, teile Einladungen und halte die Atmosphaere von der ersten Minute an hoch.',
+                'Plane neue Krimi-Runden, teile Einladungen und halte die Atmosphäre von der ersten Minute an hoch.',
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 860;
@@ -80,7 +80,7 @@ class HomeScreen extends ConsumerWidget {
                 childAspectRatio: columns == 1 ? 2.2 : 1.2,
                 children: [
                   MetricTile(
-                    label: 'Gespielte Faelle',
+                    label: 'Gespielte Fälle',
                     value: '${stats.gamesPlayed}',
                     icon: Icons.movie_filter_rounded,
                     caption: 'Demo-Historie plus aktive Sessions',
@@ -89,7 +89,7 @@ class HomeScreen extends ConsumerWidget {
                     label: 'Entdeckte Hinweise',
                     value: '${stats.detectiveFinds}',
                     icon: Icons.search_rounded,
-                    caption: 'Freigegebene Hinweise ueber alle Lobbys',
+                    caption: 'Freigegebene Hinweise über alle Lobbys',
                   ),
                   MetricTile(
                     label: 'Lieblingsrolle',
@@ -101,7 +101,7 @@ class HomeScreen extends ConsumerWidget {
                     label: 'Spielzeit',
                     value: '${stats.hoursPlayed.toStringAsFixed(1)} h',
                     icon: Icons.schedule_rounded,
-                    caption: 'Ausgelegt fuer lange Dinner-Abende',
+                    caption: 'Ausgelegt für lange Dinner-Abende',
                   ),
                 ],
               );
@@ -132,14 +132,14 @@ class HomeScreen extends ConsumerWidget {
               const SectionPanel(
                 title: 'Warum diese Architektur passt',
                 subtitle:
-                    'Die App-Struktur ist fuer den Sprung auf Firebase vorbereitet, laeuft aber lokal sofort mit Demo-Daten.',
+                    'Die App-Struktur ist für den Sprung auf Firebase vorbereitet, läuft aber lokal sofort mit Demo-Daten.',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ArchitectureLine(
                       title: 'Flutter Frontend',
                       text:
-                          'Eine Codebasis fuer Web, Android und spaeter iOS/Desktop.',
+                          'Eine Codebasis für Web, Android und später iOS/Desktop.',
                     ),
                     _ArchitectureLine(
                       title: 'Riverpod State',
@@ -154,7 +154,7 @@ class HomeScreen extends ConsumerWidget {
                     _ArchitectureLine(
                       title: 'Firebase-ready',
                       text:
-                          'Repository-Logik kann spaeter an Firestore, Auth und Cloud Functions andocken.',
+                          'Repository-Logik kann später an Firestore, Auth und Cloud Functions andocken.',
                     ),
                   ],
                 ),
@@ -164,7 +164,7 @@ class HomeScreen extends ConsumerWidget {
               SectionPanel(
                 title: 'Aktuelle Zentrale',
                 subtitle: latestLobby == null
-                    ? 'Sobald du eine Lobby oeffnest, erscheint sie hier als Schnellzugriff.'
+                    ? 'Sobald du eine Lobby öffnest, erscheint sie hier als Schnellzugriff.'
                     : 'Dein letzter Raum bleibt direkt von hier aus erreichbar.',
                 child: latestLobby == null
                     ? Column(
@@ -197,7 +197,7 @@ class HomeScreen extends ConsumerWidget {
                           const SizedBox(height: 8),
                           Text(
                             latestCase?.tagline ??
-                                'Der Raum steht bereit fuer neue Ermittler.',
+                                'Der Raum steht bereit für neue Ermittler.',
                           ),
                           const SizedBox(height: 16),
                           FilledButton.icon(
@@ -210,22 +210,22 @@ class HomeScreen extends ConsumerWidget {
                       ),
               ),
               const SectionPanel(
-                title: 'Premium-Gefuehl auf jeder Seite',
+                title: 'Premium-Gefühl auf jeder Seite',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _ExperienceLine('Dezente Animationen statt Formular-Optik'),
                     _ExperienceLine(
-                        'Luxurioeses Farbsystem mit Gold, Noir und Weinrot'),
+                        'Luxuriöses Farbsystem mit Gold, Noir und Weinrot'),
                     _ExperienceLine(
                         'Rollen, Hinweise und Host-Steuerung aufeinander abgestimmt'),
                     _ExperienceLine(
-                        'Responsiv fuer Tablet, Smartphone und grosses Desktop-Layout'),
+                        'Responsiv für Tablet, Smartphone und großes Desktop-Layout'),
                   ],
                 ),
               ),
               SectionPanel(
-                title: 'Live-Faelle im Archiv',
+                title: 'Live-Fälle im Archiv',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: cases
@@ -330,14 +330,14 @@ class _StoryHero extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            'Willkommen zurueck, $alias.',
+            'Willkommen zurück, $alias.',
             style:
                 textTheme.headlineMedium?.copyWith(color: AppPalette.parchment),
           ),
           const SizedBox(height: 12),
           Text(
             latestLobbyCode == null
-                ? 'Dein naechster Abend kann sofort starten: einen Fall auswaehlen, Lobby erstellen und Demo-Gaeste zum Durchtesten hinzufuegen.'
+                ? 'Dein nächster Abend kann sofort starten: einen Fall auswählen, Lobby erstellen und Demo-Gäste zum Durchtesten hinzufügen.'
                 : 'Die letzte Session mit Code $latestLobbyCode ist nur einen Klick entfernt. Rolle verteilen, Countdown starten und Hinweise elegant ausspielen.',
             style: textTheme.bodyLarge?.copyWith(color: AppPalette.parchment),
           ),
@@ -364,22 +364,21 @@ class _ActionDeck extends StatelessWidget {
       children: [
         _ActionCard(
           title: 'Neues Spiel',
-          subtitle: 'Waehl einen Fall und oeffne eine neue Premium-Lobby.',
+          subtitle: 'Wähle einen Fall und öffne eine neue Premium-Lobby.',
           icon: Icons.add_circle_outline_rounded,
           onTap: onExploreCases,
         ),
         const SizedBox(height: 12),
         _ActionCard(
           title: 'Lobby beitreten',
-          subtitle:
-              'Per Code, Link oder QR direkt in laufende Faelle springen.',
+          subtitle: 'Per Code, Link oder QR direkt in laufende Fälle springen.',
           icon: Icons.login_rounded,
           onTap: onOpenLobbies,
         ),
         const SizedBox(height: 12),
         _ActionCard(
           title: 'Meine Rollen',
-          subtitle: 'Jede geheime Identitaet bleibt fuer dich dokumentiert.',
+          subtitle: 'Jede geheime Identität bleibt für dich dokumentiert.',
           icon: Icons.style_rounded,
           onTap: onReviewRoles,
         ),

@@ -61,7 +61,7 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
     final mysteryCase = ref.watch(mysteryCaseProvider(lobby.caseId));
     if (mysteryCase == null) {
       return const Center(
-          child: Text('Der zugehoerige Fall ist nicht verfuegbar.'));
+          child: Text('Der zugehörige Fall ist nicht verfügbar.'));
     }
 
     final state = ref.watch(mysteryControllerProvider);
@@ -144,8 +144,8 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
               SectionPanel(
                 title: 'Deine geheime Rolle',
                 subtitle: currentRole == null
-                    ? 'Sobald du Teil dieser Lobby bist, erscheint dein persoenliches Dossier hier.'
-                    : 'Nur fuer ${viewer!.name} sichtbar. Die Rolle wird lokal im Archiv gespeichert.',
+                    ? 'Sobald du Teil dieser Lobby bist, erscheint dein persönliches Dossier hier.'
+                    : 'Nur für ${viewer!.name} sichtbar. Die Rolle wird lokal im Archiv gespeichert.',
                 trailing: currentRole == null
                     ? null
                     : InfoPill(
@@ -153,13 +153,13 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                         icon: Icons.lock_rounded,
                       ),
                 child: currentRole == null
-                    ? const Text('Noch keine Rolle verfuegbar.')
+                    ? const Text('Noch keine Rolle verfügbar.')
                     : _RoleDossier(role: currentRole),
               ),
               SectionPanel(
                 title: 'Chat',
                 subtitle:
-                    'Lobby-, Rollen- und Systemmeldungen laufen hier zusammen. Perfekt fuer die Moderation waehrend des Spiels.',
+                    'Lobby-, Rollen- und Systemmeldungen laufen hier zusammen. Perfekt für die Moderation während des Spiels.',
                 child: _ChatPanel(
                   lobby: lobby,
                   chatController: _chatController,
@@ -171,7 +171,7 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
               SectionPanel(
                 title: 'Spielerliste & Einladungen',
                 subtitle:
-                    'Teile den Code oder den QR direkt mit deiner Runde. Der Host kann Demo-Gaeste hinzufuegen oder Spieler entfernen.',
+                    'Teile den Code oder den QR direkt mit deiner Runde. Der Host kann Demo-Gäste hinzufügen oder Spieler entfernen.',
                 child: _RosterPanel(
                   lobby: lobby,
                   isHost: isHost,
@@ -240,10 +240,10 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
     final added =
         ref.read(mysteryControllerProvider.notifier).addDemoGuests(widget.code);
     if (added == 0) {
-      _showMessage('Keine freien Rollenplaetze mehr verfuegbar.');
+      _showMessage('Keine freien Rollenplätze mehr verfügbar.');
       return;
     }
-    _showMessage('$added Demo-Gaeste wurden hinzugefuegt.');
+    _showMessage('$added Demo-Gäste wurden hinzugefügt.');
   }
 
   void _runHostAction(String? error) {
@@ -412,7 +412,7 @@ class _HostControls extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             isHost
-                ? 'Starte Phasen, verteile Rollen neu und fuege Demo-Gaeste fuer Schnelltests hinzu.'
+                ? 'Starte Phasen, verteile Rollen neu und füge Demo-Gäste für Schnelltests hinzu.'
                 : 'Du siehst die Live-Session, aber nur der Host kann den Ablauf steuern.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: AppPalette.parchment.withOpacity(0.92),
@@ -429,7 +429,7 @@ class _HostControls extends StatelessWidget {
             onPressed: isHost && lobby.hasStarted ? onAdvance : null,
             icon: const Icon(Icons.skip_next_rounded),
             label: Text(
-                lobby.isCompleted ? 'Fall abgeschlossen' : 'Naechste Phase'),
+                lobby.isCompleted ? 'Fall abgeschlossen' : 'Nächste Phase'),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -441,7 +441,7 @@ class _HostControls extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: isHost ? onAddGuests : null,
             icon: const Icon(Icons.group_add_rounded),
-            label: const Text('Demo-Gaeste hinzufuegen'),
+            label: const Text('Demo-Gäste hinzufügen'),
           ),
         ],
       ),
@@ -509,7 +509,7 @@ class _RoleDossier extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        _DossierLine(title: 'Persoenlichkeit', text: role.persona),
+        _DossierLine(title: 'Persönlichkeit', text: role.persona),
         _DossierLine(title: 'Geheimnis', text: role.secret),
         _DossierLine(title: 'Motiv', text: role.motive),
         _DossierLine(title: 'Beziehungen', text: role.relationships),
@@ -537,7 +537,7 @@ class _RoleDossier extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text('Kostuemempfehlung',
+        Text('Kostümempfehlung',
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Text('Neutral: ${role.outfit.neutral}'),

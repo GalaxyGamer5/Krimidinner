@@ -96,9 +96,9 @@ class _LobbiesScreenState extends ConsumerState<LobbiesScreen> {
           ),
           const SizedBox(height: 16),
           SectionPanel(
-            title: 'Aktive Raeume',
+            title: 'Aktive Räume',
             subtitle:
-                'Alle aktuell im Speicher verfuegbaren Lobbys. Ideal, um den Flow lokal zu testen und Rollen neu zu verteilen.',
+                'Alle aktüll im Speicher verfügbaren Lobbys. Ideal, um den Flow lokal zu testen und Rollen neu zu verteilen.',
             child: lobbies.isEmpty
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +109,7 @@ class _LobbiesScreenState extends ConsumerState<LobbiesScreen> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Waehle oben einen Fall aus und starte in wenigen Sekunden mit dem ersten Raum.',
+                        'Wähle oben einen Fall aus und starte in wenigen Sekunden mit dem ersten Raum.',
                       ),
                     ],
                   )
@@ -132,14 +132,14 @@ class _LobbiesScreenState extends ConsumerState<LobbiesScreen> {
   void _createLobby() {
     final cases = ref.read(mysteryCatalogProvider);
     if (cases.isEmpty) {
-      _showMessage('Es stehen aktuell keine Faelle bereit.');
+      _showMessage('Es stehen aktüll keine Fälle bereit.');
       return;
     }
 
     final selected =
         cases.where((item) => item.id == _selectedCaseId).firstOrNull;
     if (selected == null) {
-      _showMessage('Bitte waehle einen gueltigen Fall aus.');
+      _showMessage('Bitte wähle einen gültigen Fall aus.');
       return;
     }
 
@@ -206,7 +206,7 @@ class _CreateLobbyPanel extends StatelessWidget {
           Text('Neues Spiel', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
           const Text(
-            'Host-Name vergeben, Fall auswaehlen und in eine frisch erzeugte Lobby springen.',
+            'Host-Name vergeben, Fall auswählen und in eine frisch erzeugte Lobby springen.',
           ),
           const SizedBox(height: 18),
           TextField(
@@ -271,7 +271,7 @@ class _JoinLobbyPanel extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 8),
           const Text(
-            'Mit Code, Link oder QR erreichst du denselben Raum. Der Code reicht fuer den lokalen Test sofort aus.',
+            'Mit Code, Link oder QR erreichst du denselben Raum. Der Code reicht für den lokalen Test sofort aus.',
           ),
           const SizedBox(height: 18),
           TextField(

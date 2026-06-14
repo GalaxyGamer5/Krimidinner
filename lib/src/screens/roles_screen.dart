@@ -17,7 +17,7 @@ class RolesScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionPanel(
-            title: 'Persoenliches Rollenarchiv',
+            title: 'Persönliches Rollenarchiv',
             subtitle:
                 'Jede Rolle, die du im Verlauf einer Lobby zugewiesen bekommst, wird hier lokal festgehalten. So behältst du Ziel, Signatur und Fallkontext im Blick.',
             child: archive.isEmpty
@@ -72,7 +72,7 @@ class RolesScreen extends ConsumerWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Freigeschaltet fuer ${entry.playerName} am ${_formatDate(entry.unlockedAt)}',
+                              'Freigeschaltet für ${entry.playerName} am ${_formatDate(entry.unlockedAt)}',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],

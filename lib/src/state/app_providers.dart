@@ -75,21 +75,21 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
   return [
     Achievement(
       title: 'Meisterdetektiv',
-      description: 'Schliesse mehrere Faelle erfolgreich ab.',
+      description: 'Schließe mehrere Fälle erfolgreich ab.',
       progress: stats.gamesPlayed.toDouble(),
       target: 8,
       icon: Icons.search_rounded,
     ),
     Achievement(
-      title: 'Unauffaelliger Taeter',
+      title: 'Unauffälliger Täter',
       description: 'Verwalte mehrere Rollen, ohne deine Spuren preiszugeben.',
       progress: state.roleArchive.length.toDouble(),
       target: 6,
       icon: Icons.visibility_off_rounded,
     ),
     Achievement(
-      title: 'Hinweisjaeger',
-      description: 'Schalte Hinweise ueber mehrere Partien hinweg frei.',
+      title: 'Hinweisjäger',
+      description: 'Schalte Hinweise über mehrere Partien hinweg frei.',
       progress: totalHints.toDouble(),
       target: 14,
       icon: Icons.local_police_rounded,
@@ -258,7 +258,7 @@ class MysteryController extends Notifier<MysteryState> {
       players: [player],
       roleAssignments: const {},
       messages: [
-        _systemMessage('Lobby $code wurde eroeffnet. Einladungslink bereit.'),
+        _systemMessage('Lobby $code wurde eröffnet. Einladungslink bereit.'),
       ],
       revealedHintIds: const [],
       phaseIndex: 0,
@@ -295,7 +295,7 @@ class MysteryController extends Notifier<MysteryState> {
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der Fall fuer diese Lobby ist nicht mehr verfuegbar.';
+      return 'Der Fall für diese Lobby ist nicht mehr verfügbar.';
     }
 
     if (lobby.players.length >= mysteryCase.roles.length) {
@@ -384,7 +384,7 @@ class MysteryController extends Notifier<MysteryState> {
       messages: [
         ...lobby.messages,
         _systemMessage(
-          '${guests.length} Demo-Gaeste wurden fuer den Schnelltest hinzugefuegt.',
+          '${guests.length} Demo-Gäste wurden für den Schnelltest hinzugefügt.',
         ),
       ],
     );
@@ -409,7 +409,7 @@ class MysteryController extends Notifier<MysteryState> {
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehoerige Fall fehlt.';
+      return 'Der zugehörige Fall fehlt.';
     }
 
     var updatedLobby = _assignRoles(lobby, mysteryCase).copyWith(
@@ -442,7 +442,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehoerige Fall fehlt.';
+      return 'Der zugehörige Fall fehlt.';
     }
 
     var updatedLobby = lobby.copyWith(
@@ -474,7 +474,7 @@ class MysteryController extends Notifier<MysteryState> {
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehoerige Fall fehlt.';
+      return 'Der zugehörige Fall fehlt.';
     }
 
     if (!lobby.hasStarted) {
@@ -482,7 +482,7 @@ class MysteryController extends Notifier<MysteryState> {
     }
 
     if (lobby.isCompleted) {
-      return 'Dieses Spiel wurde bereits aufgeloest.';
+      return 'Dieses Spiel wurde bereits aufgelöst.';
     }
 
     if (lobby.phaseIndex >= mysteryCase.phases.length - 1) {
@@ -490,7 +490,7 @@ class MysteryController extends Notifier<MysteryState> {
         isCompleted: true,
         messages: [
           ...lobby.messages,
-          _systemMessage('Die Aufloesung ist abgeschlossen. Fall geschlossen.'),
+          _systemMessage('Die Auflösung ist abgeschlossen. Fall geschlossen.'),
         ],
       );
       final updatedLobbies = [...state.lobbies];
@@ -530,7 +530,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehoerige Fall fehlt.';
+      return 'Der zugehörige Fall fehlt.';
     }
 
     final hint =
@@ -571,7 +571,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der zugehoerige Fall fehlt.';
+      return 'Der zugehörige Fall fehlt.';
     }
 
     var updatedLobby = lobby.copyWith(

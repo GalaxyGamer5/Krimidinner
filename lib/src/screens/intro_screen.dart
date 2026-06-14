@@ -144,7 +144,7 @@ class IntroScreen extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Text(
-          'Erstelle elegante Lobbys, teile QR-Codes, verteile geheime Rollen und fuehre deine Runde durch cineastische Krimi-Dinner-Abende auf Web, Android und iOS.',
+          'Erstelle elegante Lobbys, teile QR-Codes, verteile geheime Rollen und führe deine Runde durch cineastische Krimi-Dinner-Abende auf Web, Android und iOS.',
           style: textTheme.bodyLarge,
         ),
         const SizedBox(height: 24),
@@ -152,8 +152,8 @@ class IntroScreen extends StatelessWidget {
           spacing: 12,
           runSpacing: 12,
           children: [
-            _FeatureChip(label: 'Nebel-Atmosphaere'),
-            _FeatureChip(label: 'Rollen nur fuer dich sichtbar'),
+            _FeatureChip(label: 'Nebel-Atmosphäre'),
+            _FeatureChip(label: 'Rollen nur für dich sichtbar'),
             _FeatureChip(label: 'QR- und Link-Einladungen'),
             _FeatureChip(label: 'Phasen mit Countdown'),
           ],
@@ -212,9 +212,9 @@ class IntroScreen extends StatelessWidget {
           const _AtmosphereLine(
               'Villa im Hintergrund, als geheimnisvolle Silhouette'),
           const _AtmosphereLine(
-              'Elegante Serifentitel fuer cineastische Wirkung'),
+              'Elegante Serifentitel für cineastische Wirkung'),
           const _AtmosphereLine(
-              'Atmosphaerische Audio- und Hinweis-Hooks fuer spaetere Assets'),
+              'Atmosphärische Audio- und Hinweis-Hooks für spätere Assets'),
           const _AtmosphereLine(
               'Responsiv von Smartphone bis Desktop ausgelegt'),
         ],

@@ -32,7 +32,7 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
           SectionPanel(
             title: 'Kuratiertes Krimi-Archiv',
             subtitle:
-                'Waehl ein Szenario mit klarer Atmosphaere, passender Spielerzahl und sofort spielbaren Rollendossiers.',
+                'Wähl ein Szenario mit klarer Atmosphäre, passender Spielerzahl und sofort spielbaren Rollendossiers.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -58,7 +58,7 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Aktuell verfuegbar: ${visibleCases.length} spielbereite Faelle',
+                  'Aktüll verfügbar: ${visibleCases.length} spielbereite Fälle',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
@@ -165,7 +165,7 @@ class _CaseCard extends StatelessWidget {
             Row(
               children: [
                 const Text(
-                  'Details oeffnen',
+                  'Details öffnen',
                   style: TextStyle(
                     color: AppPalette.parchment,
                     fontWeight: FontWeight.w700,

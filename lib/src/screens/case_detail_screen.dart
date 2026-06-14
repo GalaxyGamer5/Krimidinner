@@ -33,7 +33,7 @@ class CaseDetailScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => context.go('/cases'),
-                child: const Text('Zurueck zum Archiv'),
+                child: const Text('Zurück zum Archiv'),
               ),
             ],
           ),
@@ -135,7 +135,7 @@ class CaseDetailScreen extends ConsumerWidget {
               SectionPanel(
                 title: 'Spielprofil',
                 subtitle:
-                    'Diese Akte ist fuer elegante Rollenrunden mit klarer Dramaturgie und starken Geheimnissen gebaut.',
+                    'Diese Akte ist für elegante Rollenrunden mit klarer Dramaturgie und starken Geheimnissen gebaut.',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -292,7 +292,7 @@ class CaseDetailScreen extends ConsumerWidget {
                 ),
               ),
               SectionPanel(
-                title: 'Kostuemempfehlungen',
+                title: 'Kostümempfehlungen',
                 subtitle:
                     'Jede Rolle bringt direkt verwertbare Outfit-Ideen mit verschiedenen Budgets mit.',
                 child: Column(
@@ -321,7 +321,7 @@ class CaseDetailScreen extends ConsumerWidget {
                 ),
               ),
               SectionPanel(
-                title: 'Hinweissystem',
+                title: 'Hinweißystem',
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: mysteryCase.hints

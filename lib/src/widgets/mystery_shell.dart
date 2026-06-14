@@ -18,7 +18,7 @@ class MysteryShell extends StatelessWidget {
   static const List<_Destination> _destinations = [
     _Destination(label: 'Salon', icon: Icons.home_rounded, path: '/hub'),
     _Destination(
-        label: 'Faelle', icon: Icons.auto_stories_rounded, path: '/cases'),
+        label: 'Fälle', icon: Icons.auto_stories_rounded, path: '/cases'),
     _Destination(label: 'Lobbys', icon: Icons.groups_rounded, path: '/lobbies'),
     _Destination(
         label: 'Rollen', icon: Icons.person_search_rounded, path: '/roles'),
@@ -257,7 +257,7 @@ class _ShellHeader extends StatelessWidget {
           const SizedBox(width: 12),
           const InfoPill(
             icon: Icons.radio_button_checked_rounded,
-            label: 'Atmosphaere aktiv',
+            label: 'Atmosphäre aktiv',
           ),
         ],
       ),

@@ -81,7 +81,7 @@ extension BudgetTierX on BudgetTier {
   String get label {
     switch (this) {
       case BudgetTier.budget:
-        return 'Guenstig';
+        return 'Günstig';
       case BudgetTier.midrange:
         return 'Mittel';
       case BudgetTier.premium:
@@ -100,7 +100,7 @@ extension AppLanguageX on AppLanguage {
       case AppLanguage.en:
         return 'Englisch';
       case AppLanguage.fr:
-        return 'Franzoesisch';
+        return 'Französisch';
       case AppLanguage.es:
         return 'Spanisch';
     }
