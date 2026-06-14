@@ -95,13 +95,6 @@ class CaseDetailScreen extends ConsumerWidget {
                         color: AppPalette.parchment,
                       ),
                 ),
-                const SizedBox(height: 14),
-                Text(
-                  'Waehle zuerst den Fall. Die eigentlichen Rollenakten, Geheimnisse und persoenlichen Hinweise werden erst spaeter ueber die Einladungen sichtbar.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppPalette.parchment.withOpacity(0.94),
-                      ),
-                ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: () {
@@ -122,8 +115,6 @@ class CaseDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           SectionPanel(
             title: 'Worum geht es?',
-            subtitle:
-                'Hier bleibt es absichtlich kompakt: nur die Szene und der grobe Rahmen.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -173,8 +164,6 @@ class CaseDetailScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           SectionPanel(
             title: 'Figuren in dieser Runde',
-            subtitle:
-                'Spoilerarm und bewusst schlicht. Private Details sehen nur die eingeladenen Spieler.',
             child: Column(
               children: mysteryCase.roles
                   .map((role) => _RolePreviewCard(role: role))

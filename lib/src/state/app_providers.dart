@@ -109,7 +109,7 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
     ),
     Achievement(
       title: 'Hinweisjaeger',
-      description: 'Schalte Hinweise ueber mehrere Partien hinweg frei.',
+      description: 'Schalte Hinweise über mehrere Partien hinweg frei.',
       progress: totalHints.toDouble(),
       target: 14,
       icon: Icons.local_police_rounded,
@@ -285,7 +285,7 @@ class MysteryController extends Notifier<MysteryState> {
     final lobby = state.lobbies[lobbyIndex];
     final mysteryCase = findMysteryCaseById(lobby.caseId);
     if (mysteryCase == null) {
-      return 'Der Fall fuer diese Lobby ist nicht mehr verfuegbar.';
+      return 'Der Fall für diese Lobby ist nicht mehr verfügbar.';
     }
 
     if (lobby.players.length >= mysteryCase.roles.length) {
@@ -306,7 +306,7 @@ class MysteryController extends Notifier<MysteryState> {
           .where((entry) => entry.id == normalizedInvitationId)
           .firstOrNull;
       if (invitation == null) {
-        return 'Diese Einladung ist nicht mehr verfuegbar.';
+        return 'Diese Einladung ist nicht mehr verfügbar.';
       }
       switch (invitation.status) {
         case LobbyInvitationStatus.pending:
@@ -314,7 +314,7 @@ class MysteryController extends Notifier<MysteryState> {
         case LobbyInvitationStatus.accepted:
           return 'Diese Einladung wurde bereits angenommen.';
         case LobbyInvitationStatus.revoked:
-          return 'Diese Einladung wurde vom Spielleiter zurueckgezogen.';
+          return 'Diese Einladung wurde vom Spielleiter zurückgezogen.';
       }
     }
 
@@ -400,7 +400,7 @@ class MysteryController extends Notifier<MysteryState> {
     final roleExists = mysteryCase.roles.any((role) => role.id == roleId);
     if (!roleExists) {
       return (
-        error: 'Die gewaehlte Rolle ist nicht mehr verfuegbar.',
+        error: 'Die gewählte Rolle ist nicht mehr verfügbar.',
         invitation: null
       );
     }
@@ -423,7 +423,7 @@ class MysteryController extends Notifier<MysteryState> {
     );
     if (duplicateInvite) {
       return (
-        error: 'Fuer diesen Gast gibt es bereits eine offene Einladung.',
+        error: 'Für diesen Gast gibt es bereits eine offene Einladung.',
         invitation: null,
       );
     }
@@ -448,7 +448,7 @@ class MysteryController extends Notifier<MysteryState> {
       invitations: [invitation, ...lobby.invitations],
       messages: [
         ...lobby.messages,
-        _systemMessage('Einladung fuer $trimmedRecipient wurde erstellt.'),
+        _systemMessage('Einladung für $trimmedRecipient wurde erstellt.'),
       ],
     );
 
@@ -473,7 +473,7 @@ class MysteryController extends Notifier<MysteryState> {
       return 'Einladung nicht gefunden.';
     }
     if (invitation.status == LobbyInvitationStatus.accepted) {
-      return 'Bereits angenommene Einladungen koennen nicht zurueckgezogen werden.';
+      return 'Bereits angenommene Einladungen können nicht zurückgezogen werden.';
     }
     if (invitation.status == LobbyInvitationStatus.revoked) {
       return null;
@@ -490,7 +490,7 @@ class MysteryController extends Notifier<MysteryState> {
       messages: [
         ...lobby.messages,
         _systemMessage(
-          'Die Einladung fuer ${invitation.recipientName} wurde zurueckgezogen.',
+          'Die Einladung für ${invitation.recipientName} wurde zurückgezogen.',
         ),
       ],
     );

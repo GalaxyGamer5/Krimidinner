@@ -263,11 +263,6 @@ class _ShellHeader extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          const InfoPill(
-            icon: Icons.radio_button_checked_rounded,
-            label: 'Atmosphäre aktiv',
-          ),
         ],
       ),
     );

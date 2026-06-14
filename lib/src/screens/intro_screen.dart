@@ -87,31 +87,7 @@ class IntroScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(32),
                     decoration: MysteryDecor.panel(context, opacity: 0.76),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide = constraints.maxWidth >= 820;
-                        return isWide
-                            ? Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildNarrative(context, textTheme),
-                                  ),
-                                  const SizedBox(width: 28),
-                                  Expanded(
-                                    child: _buildAtmospherePanel(context),
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildNarrative(context, textTheme),
-                                  const SizedBox(height: 24),
-                                  _buildAtmospherePanel(context),
-                                ],
-                              );
-                      },
-                    ),
+                    child: _buildNarrative(context, textTheme),
                   ),
                 ),
               ),
@@ -148,17 +124,6 @@ class IntroScreen extends StatelessWidget {
           style: textTheme.bodyLarge,
         ),
         const SizedBox(height: 24),
-        const Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            _FeatureChip(label: 'Nebel-Atmosphäre'),
-            _FeatureChip(label: 'Rollen nur für dich sichtbar'),
-            _FeatureChip(label: 'QR- und Link-Einladungen'),
-            _FeatureChip(label: 'Phasen mit Countdown'),
-          ],
-        ),
-        const SizedBox(height: 28),
         FilledButton.icon(
           onPressed: () => context.go('/hub'),
           icon: const Icon(Icons.play_arrow_rounded),
@@ -168,59 +133,6 @@ class IntroScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAtmospherePanel(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppPalette.midnight.withOpacity(0.86),
-            AppPalette.noir.withOpacity(0.72),
-          ],
-        ),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.nightlight_round, color: AppPalette.gold),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Inszenierung beim Start',
-                  style: TextStyle(
-                    color: AppPalette.parchment,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'Langsam ziehender Nebel, flackernde Laternen, regennasse Fensterscheiben und eine ruhige Kamera-Drift schaffen bereits auf dem Startscreen die richtige Stimmung.',
-            style: textTheme.bodyMedium?.copyWith(color: AppPalette.parchment),
-          ),
-          const SizedBox(height: 18),
-          const _AtmosphereLine(
-              'Villa im Hintergrund, als geheimnisvolle Silhouette'),
-          const _AtmosphereLine(
-              'Elegante Serifentitel für cineastische Wirkung'),
-          const _AtmosphereLine(
-              'Atmosphärische Audio- und Hinweis-Hooks für spätere Assets'),
-          const _AtmosphereLine(
-              'Responsiv von Smartphone bis Desktop ausgelegt'),
-        ],
-      ),
-    );
-  }
 }
 
 class _HeroBadge extends StatelessWidget {
@@ -267,34 +179,3 @@ class _FeatureChip extends StatelessWidget {
   }
 }
 
-class _AtmosphereLine extends StatelessWidget {
-  const _AtmosphereLine(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Icon(Icons.circle, size: 8, color: AppPalette.gold),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: AppPalette.parchment),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -108,16 +109,16 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                 final controls = _HostControls(
                   lobby: lobby,
                   isHost: isHost,
-                  onStart: () => _runHostAction(
-                    ref
+                  onStart: () {
+                    final error = ref
                         .read(mysteryControllerProvider.notifier)
-                        .startGame(widget.code),
-                  ),
-                  onAdvance: () => _runHostAction(
-                    ref
-                        .read(mysteryControllerProvider.notifier)
-                        .advancePhase(widget.code),
-                  ),
+                        .startGame(widget.code);
+                    if (error != null) {
+                      _showMessage(error);
+                    } else {
+                      context.go('/lobbies/room/${widget.code}/play');
+                    }
+                  },
                   onReshuffle: () => _runHostAction(
                     ref
                         .read(mysteryControllerProvider.notifier)
@@ -153,32 +154,24 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
               if (viewer != null && !isHost && !lobby.hasStarted)
                 SectionPanel(
                   title: 'Warteraum',
-                  subtitle:
-                      'Du bist bereits in der Runde. Jetzt fehlt nur noch der Start durch den Spielleiter.',
                   child: _WaitingPanel(
                     mysteryCase: mysteryCase,
                     role: currentRole,
                   ),
                 ),
-              SectionPanel(
-                title: 'Deine geheime Rolle',
-                subtitle: currentRole == null
-                    ? 'Sobald du Teil dieser Lobby bist, erscheint dein persoenliches Dossier hier.'
-                    : 'Nur fuer ${viewer!.name} sichtbar. Die Rolle wird lokal im Archiv gespeichert.',
-                trailing: currentRole == null
-                    ? null
-                    : InfoPill(
-                        label: currentRole.outfit.budget.label,
-                        icon: Icons.lock_rounded,
-                      ),
-                child: currentRole == null
-                    ? const Text('Noch keine Rolle verfuegbar.')
-                    : _RoleDossier(role: currentRole),
-              ),
+              if (currentRole != null)
+                SectionPanel(
+                  title: 'Deine geheime Rolle',
+                  child: Center(
+                    child: FilledButton.icon(
+                      onPressed: () => context.go('/lobbies/room/${widget.code}/role/${currentRole.id}'),
+                      icon: const Icon(Icons.menu_book_rounded),
+                      label: const Text('Rollenakte öffnen'),
+                    ),
+                  ),
+                ),
               SectionPanel(
                 title: 'Chat',
-                subtitle:
-                    'Lobby-, Rollen- und Systemmeldungen laufen hier zusammen. Perfekt fuer die Moderation waehrend des Spiels.',
                 child: _ChatPanel(
                   lobby: lobby,
                   chatController: _chatController,
@@ -189,8 +182,6 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
             secondary: [
               SectionPanel(
                 title: 'Spielerliste & Einladungen',
-                subtitle:
-                    'Persoenliche Einladungen, Rollenbindungen und Wartestatus laufen hier zusammen.',
                 child: _RosterPanel(
                   lobby: lobby,
                   mysteryCase: mysteryCase,
@@ -217,8 +208,6 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
               if (lobby.hasStarted)
                 SectionPanel(
                   title: 'Hinweise & Phasen',
-                  subtitle:
-                      'Automatische Hinweise werden pro Phase freigeschaltet. Der Host kann jederzeit manuell nachlegen.',
                   child: _HintsPanel(
                     lobby: lobby,
                     mysteryCase: mysteryCase,
@@ -234,8 +223,6 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                 ),
               SectionPanel(
                 title: 'Gastzugang & QR',
-                subtitle:
-                    'Der allgemeine Lobby-Link bleibt verfuergbar. Fuer echte Einladungen nutze den Button "Gaeste einladen".',
                 child: _InviteOverviewPanel(
                   lobby: lobby,
                   pendingInvitationCount: pendingInvitations.length,
@@ -667,7 +654,6 @@ class _HostControls extends StatelessWidget {
     required this.lobby,
     required this.isHost,
     required this.onStart,
-    required this.onAdvance,
     required this.onReshuffle,
     required this.onInviteGuests,
   });
@@ -675,7 +661,6 @@ class _HostControls extends StatelessWidget {
   final LobbySession lobby;
   final bool isHost;
   final VoidCallback onStart;
-  final VoidCallback onAdvance;
   final VoidCallback onReshuffle;
   final VoidCallback onInviteGuests;
 
@@ -696,32 +681,22 @@ class _HostControls extends StatelessWidget {
                   color: AppPalette.parchment,
                 ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            isHost
-                ? 'Starte Phasen, verteile Rollen neu und sende persoenliche Einladungen mit festen Charakterrollen.'
-                : 'Du siehst die Live-Session, aber nur der Host kann den Ablauf steuern.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppPalette.parchment.withOpacity(0.92),
-                ),
-          ),
           const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: isHost && !lobby.hasStarted ? onStart : null,
-            icon: const Icon(Icons.play_arrow_rounded),
-            label: const Text('Spiel starten'),
-          ),
-          const SizedBox(height: 10),
-          FilledButton.icon(
-            onPressed: isHost && lobby.hasStarted ? onAdvance : null,
-            icon: const Icon(Icons.skip_next_rounded),
-            label: Text(
-              lobby.isCompleted ? 'Fall abgeschlossen' : 'Naechste Phase',
+          if (!lobby.hasStarted)
+            FilledButton.icon(
+              onPressed: isHost ? onStart : null,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: const Text('Spiel starten'),
+            )
+          else
+            FilledButton.icon(
+              onPressed: () => context.go('/lobbies/room/${lobby.code}/play'),
+              icon: const Icon(Icons.dashboard_rounded),
+              label: const Text('Zum Spielbrett'),
             ),
-          ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: isHost ? onReshuffle : null,
+            onPressed: isHost && !lobby.hasStarted ? onReshuffle : null,
             icon: const Icon(Icons.shuffle_rounded),
             label: const Text('Rollen neu verteilen'),
           ),
@@ -729,7 +704,7 @@ class _HostControls extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: isHost ? onInviteGuests : null,
             icon: const Icon(Icons.mark_email_unread_outlined),
-            label: const Text('Gaeste einladen'),
+            label: const Text('Gäste einladen'),
           ),
         ],
       ),

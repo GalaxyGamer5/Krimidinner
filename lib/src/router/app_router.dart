@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../screens/account_screen.dart';
 import '../screens/case_detail_screen.dart';
 import '../screens/cases_screen.dart';
+import '../screens/game_session_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/intro_screen.dart';
 import '../screens/invitation_screen.dart';
 import '../screens/lobbies_screen.dart';
 import '../screens/lobby_room_screen.dart';
+import '../screens/role_dossier_screen.dart';
 import '../screens/roles_screen.dart';
 import '../widgets/mystery_shell.dart';
 
@@ -66,6 +68,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => LobbyRoomScreen(
                   code: state.pathParameters['code'] ?? '',
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'role/:roleId',
+                    builder: (context, state) => RoleDossierScreen(
+                      code: state.pathParameters['code'] ?? '',
+                      roleId: state.pathParameters['roleId'] ?? '',
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'play',
+                    builder: (context, state) => GameSessionScreen(
+                      code: state.pathParameters['code'] ?? '',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

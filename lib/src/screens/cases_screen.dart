@@ -31,8 +31,6 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
         children: [
           SectionPanel(
             title: 'Kuratiertes Krimi-Archiv',
-            subtitle:
-                'Wähle ein Szenario mit klarer Atmosphäre, passender Spielerzahl und sofort spielbaren Rollendossiers.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
