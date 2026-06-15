@@ -57,6 +57,14 @@ final lobbyProvider = Provider.family<LobbySession?, String>((ref, code) {
   return null;
 });
 
+final userAccountProvider =
+    NotifierProvider<UserAccountController, UserAccount?>(
+        UserAccountController.new);
+
+final isLoggedInProvider = Provider<bool>((ref) {
+  return ref.watch(userAccountProvider) != null;
+});
+
 final playerStatsProvider = Provider<PlayerStats>((ref) {
   final state = ref.watch(mysteryControllerProvider);
   final completedGames =
@@ -1780,5 +1788,37 @@ extension _IterableFirstOrNull<T> on Iterable<T> {
       return item;
     }
     return null;
+  }
+}
+
+class UserAccountController extends Notifier<UserAccount?> {
+  static const _accountKey = 'user_account_v1';
+
+  SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
+
+  @override
+  UserAccount? build() {
+    final raw = _prefs.getString(_accountKey);
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return UserAccount.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void register(UserAccount account) {
+    state = account;
+    _prefs.setString(_accountKey, jsonEncode(account.toJson()));
+
+    // Auto-populate the local alias from the full name.
+    ref.read(mysteryControllerProvider.notifier).updateAlias(account.fullName);
+  }
+
+  void logout() {
+    state = null;
+    _prefs.remove(_accountKey);
   }
 }

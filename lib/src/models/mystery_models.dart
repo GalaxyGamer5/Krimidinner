@@ -684,3 +684,32 @@ class MysteryState {
     );
   }
 }
+
+@immutable
+class UserAccount {
+  const UserAccount({
+    required this.fullName,
+    required this.dateOfBirth,
+    required this.email,
+    required this.passwordHash,
+  });
+
+  final String fullName;
+  final DateTime dateOfBirth;
+  final String email;
+  final String passwordHash;
+
+  Map<String, dynamic> toJson() => {
+        'fullName': fullName,
+        'dateOfBirth': dateOfBirth.toIso8601String(),
+        'email': email,
+        'passwordHash': passwordHash,
+      };
+
+  factory UserAccount.fromJson(Map<String, dynamic> json) => UserAccount(
+        fullName: json['fullName'] as String,
+        dateOfBirth: DateTime.parse(json['dateOfBirth'] as String),
+        email: json['email'] as String,
+        passwordHash: json['passwordHash'] as String,
+      );
+}
