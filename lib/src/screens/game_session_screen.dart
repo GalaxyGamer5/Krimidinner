@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../localization/app_strings.dart';
 import '../models/mystery_models.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -20,6 +21,9 @@ const _culpritRoleIds = <String, String>{
   'crimson_masquerade': 'julian',
   'lantern_society': 'rowan',
 };
+
+AppStrings _stringsOf(BuildContext context) =>
+    ProviderScope.containerOf(context).read(appStringsProvider);
 
 class GameSessionScreen extends ConsumerStatefulWidget {
   const GameSessionScreen({
@@ -231,6 +235,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     ChatMessage message,
     LobbyPlayer viewer,
   ) async {
+    final strings = ref.read(appStringsProvider);
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -250,7 +255,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Reaktion waehlen',
+                    strings.tr(
+                      de: 'Reaktion waehlen',
+                      en: 'Choose reaction',
+                      fr: 'Choisir une reaction',
+                      es: 'Elegir reaccion',
+                    ),
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 14),
@@ -303,6 +313,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
   }
 
   void _advancePhase(LobbySession lobby, MysteryCase mysteryCase) {
+    final strings = ref.read(appStringsProvider);
     final error = ref.read(mysteryControllerProvider.notifier).advancePhase(
           widget.code,
         );
@@ -315,28 +326,64 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     final isFinalVisiblePhase = lobby.phaseIndex >= mysteryCase.phases.length - 1;
     if (isFinalVisiblePhase) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Der Fall wurde abgeschlossen.')),
+        SnackBar(
+          content: Text(
+            strings.tr(
+              de: 'Der Fall wurde abgeschlossen.',
+              en: 'The case has been completed.',
+              fr: 'L affaire a ete terminee.',
+              es: 'El caso ha finalizado.',
+            ),
+          ),
+        ),
       );
     }
   }
 
   Future<void> _confirmLeaveLobby(LobbyPlayer viewer) async {
+    final strings = ref.read(appStringsProvider);
     final shouldLeave = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Lobby wirklich verlassen?'),
-          content: const Text(
-            'Deine Rolle bleibt noch 24 Stunden fuer dich reserviert. In dieser Zeit kannst du mit demselben Namen wieder beitreten.',
+          title: Text(
+            strings.tr(
+              de: 'Lobby wirklich verlassen?',
+              en: 'Leave lobby now?',
+              fr: 'Quitter vraiment la lobby ?',
+              es: 'Salir realmente del lobby?',
+            ),
+          ),
+          content: Text(
+            strings.tr(
+              de: 'Deine Rolle bleibt noch 24 Stunden fuer dich reserviert. In dieser Zeit kannst du mit demselben Namen wieder beitreten.',
+              en: 'Your role stays reserved for you for 24 hours. During that time you can rejoin with the same name.',
+              fr: 'Ton role reste reserve pour toi pendant 24 heures. Pendant ce temps, tu peux revenir avec le meme nom.',
+              es: 'Tu rol seguira reservado durante 24 horas. Durante ese tiempo podras volver a entrar con el mismo nombre.',
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Bleiben'),
+              child: Text(
+                strings.tr(
+                  de: 'Bleiben',
+                  en: 'Stay',
+                  fr: 'Rester',
+                  es: 'Quedarse',
+                ),
+              ),
             ),
             FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Lobby verlassen'),
+              child: Text(
+                strings.tr(
+                  de: 'Lobby verlassen',
+                  en: 'Leave lobby',
+                  fr: 'Quitter la lobby',
+                  es: 'Salir del lobby',
+                ),
+              ),
             ),
           ],
         );
@@ -359,9 +406,14 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
 
     context.go('/lobbies');
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Lobby verlassen. Wiederbeitritt mit demselben Namen ist 24 Stunden moeglich.',
+          strings.tr(
+            de: 'Lobby verlassen. Wiederbeitritt mit demselben Namen ist 24 Stunden moeglich.',
+            en: 'Lobby left. Rejoining with the same name is possible for 24 hours.',
+            fr: 'Lobby quittee. Rejoindre avec le meme nom reste possible pendant 24 heures.',
+            es: 'Has salido del lobby. Podras volver a entrar con el mismo nombre durante 24 horas.',
+          ),
         ),
       ),
     );
@@ -405,13 +457,19 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     MysteryCase mysteryCase,
     LobbyPlayer player,
   ) {
+    final strings = ref.read(appStringsProvider);
     final roleId = lobby.roleAssignments[player.id];
     final role = roleId == null
         ? null
         : mysteryCase.roles.where((entry) => entry.id == roleId).firstOrNull;
     final deadline = player.rejoinAvailableUntil;
     final timeLabel = deadline == null
-        ? 'fuer kurze Zeit'
+        ? strings.tr(
+            de: 'fuer kurze Zeit',
+            en: 'for a short time',
+            fr: 'pour un court moment',
+            es: 'por poco tiempo',
+          )
         : '${deadline.day.toString().padLeft(2, '0')}.${deadline.month.toString().padLeft(2, '0')} um ${deadline.hour.toString().padLeft(2, '0')}:${deadline.minute.toString().padLeft(2, '0')}';
 
     return Center(
@@ -430,20 +488,35 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Wiederbeitritt moeglich',
+                strings.tr(
+                  de: 'Wiederbeitritt moeglich',
+                  en: 'Rejoin available',
+                  fr: 'Retour possible',
+                  es: 'Reingreso disponible',
+                ),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
               const SizedBox(height: 10),
               Text(
-                'Dein Platz in ${mysteryCase.title} ist noch bis $timeLabel fuer dich reserviert.',
+                strings.tr(
+                  de: 'Dein Platz in ${mysteryCase.title} ist noch bis $timeLabel fuer dich reserviert.',
+                  en: 'Your spot in ${mysteryCase.title} is reserved for you until $timeLabel.',
+                  fr: 'Ta place dans ${mysteryCase.title} est reservee pour toi jusqu a $timeLabel.',
+                  es: 'Tu plaza en ${mysteryCase.title} esta reservada para ti hasta $timeLabel.',
+                ),
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
               if (role != null) ...[
                 const SizedBox(height: 14),
                 Text(
-                  'Reservierte Rolle: ${role.name}',
+                  strings.tr(
+                    de: 'Reservierte Rolle: ${role.name}',
+                    en: 'Reserved role: ${role.name}',
+                    fr: 'Role reserve : ${role.name}',
+                    es: 'Rol reservado: ${role.name}',
+                  ),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: AppPalette.gold,
                         fontWeight: FontWeight.w700,
@@ -454,7 +527,14 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
               FilledButton.icon(
                 onPressed: () => _rejoinLobby(player.name),
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Wieder beitreten'),
+                label: Text(
+                  strings.tr(
+                    de: 'Wieder beitreten',
+                    en: 'Rejoin',
+                    fr: 'Rejoindre',
+                    es: 'Volver a entrar',
+                  ),
+                ),
               ),
             ],
           ),
@@ -467,15 +547,32 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(mysteryControllerProvider);
     final appSettings = ref.watch(appSettingsProvider);
+    final strings = ref.watch(appStringsProvider);
     final lobby = state.lobbies.where((entry) => entry.code == widget.code).firstOrNull;
     final mysteryCase =
         lobby == null ? null : ref.watch(mysteryCaseProvider(lobby.caseId));
 
     if (lobby == null || mysteryCase == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Spielsitzung')),
-        body: const Center(
-          child: Text('Lobby oder Fall nicht gefunden.'),
+        appBar: AppBar(
+          title: Text(
+            strings.tr(
+              de: 'Spielsitzung',
+              en: 'Game session',
+              fr: 'Session de jeu',
+              es: 'Sesion de juego',
+            ),
+          ),
+        ),
+        body: Center(
+          child: Text(
+            strings.tr(
+              de: 'Lobby oder Fall nicht gefunden.',
+              en: 'Lobby or case not found.',
+              fr: 'Lobby ou affaire introuvable.',
+              es: 'No se encontro el lobby o el caso.',
+            ),
+          ),
         ),
       );
     }
@@ -492,7 +589,16 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     if (viewer == null && rejoinPlayer != null) {
       return Scaffold(
         backgroundColor: AppPalette.noir,
-        appBar: AppBar(title: const Text('Spielsitzung')),
+        appBar: AppBar(
+          title: Text(
+            strings.tr(
+              de: 'Spielsitzung',
+              en: 'Game session',
+              fr: 'Session de jeu',
+              es: 'Sesion de juego',
+            ),
+          ),
+        ),
         body: _buildRejoinFallback(
           context,
           lobby,
@@ -505,12 +611,26 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     if (viewer == null) {
       return Scaffold(
         backgroundColor: AppPalette.noir,
-        appBar: AppBar(title: const Text('Spielsitzung')),
-        body: const Center(
+        appBar: AppBar(
+          title: Text(
+            strings.tr(
+              de: 'Spielsitzung',
+              en: 'Game session',
+              fr: 'Session de jeu',
+              es: 'Sesion de juego',
+            ),
+          ),
+        ),
+        body: Center(
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'Du bist aktuell nicht als aktiver Spieler mit dieser Lobby verbunden.',
+              strings.tr(
+                de: 'Du bist aktuell nicht als aktiver Spieler mit dieser Lobby verbunden.',
+                en: 'You are currently not connected to this lobby as an active player.',
+                fr: 'Tu n es actuellement pas connecte a cette lobby en tant que joueur actif.',
+                es: 'Ahora mismo no estas conectado a este lobby como jugador activo.',
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -555,7 +675,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
           ),
           if (_openWindows.contains(_WindowId.chat))
             FloatingWindow(
-              title: 'Chat',
+              title: strings.tr(
+                de: 'Chat',
+                en: 'Chat',
+                fr: 'Chat',
+                es: 'Chat',
+              ),
               icon: Icons.chat_rounded,
               initialOffset: const Offset(36, 90),
               width: 420,
@@ -578,7 +703,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
             ),
           if (_openWindows.contains(_WindowId.notes))
             FloatingWindow(
-              title: 'Eigene Notizen',
+              title: strings.tr(
+                de: 'Eigene Notizen',
+                en: 'My notes',
+                fr: 'Mes notes',
+                es: 'Mis notas',
+              ),
               icon: Icons.edit_note_rounded,
               initialOffset: const Offset(120, 110),
               width: 440,
@@ -595,7 +725,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
             ),
           if (_openWindows.contains(_WindowId.evidence))
             FloatingWindow(
-              title: 'Beweise',
+              title: strings.tr(
+                de: 'Beweise',
+                en: 'Evidence',
+                fr: 'Preuves',
+                es: 'Pruebas',
+              ),
               icon: Icons.inventory_2_rounded,
               initialOffset: const Offset(210, 120),
               width: 420,
@@ -609,7 +744,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
             ),
           if (_openWindows.contains(_WindowId.role) && viewerRole != null)
             FloatingWindow(
-              title: 'Meine Rolle',
+              title: strings.tr(
+                de: 'Meine Rolle',
+                en: 'My role',
+                fr: 'Mon role',
+                es: 'Mi rol',
+              ),
               icon: Icons.menu_book_rounded,
               initialOffset: const Offset(300, 80),
               width: 420,
@@ -636,6 +776,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     MysteryRole? viewerRole,
     Duration remaining,
   ) {
+    final strings = ref.read(appStringsProvider);
     final minutes = remaining.inMinutes.toString().padLeft(2, '0');
     final seconds = (remaining.inSeconds % 60).toString().padLeft(2, '0');
 
@@ -643,7 +784,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
       backgroundColor: AppPalette.midnight,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded),
-        tooltip: 'Zurueck zur Lobby',
+        tooltip: strings.tr(
+          de: 'Zurueck zur Lobby',
+          en: 'Back to lobby',
+          fr: 'Retour a la lobby',
+          es: 'Volver al lobby',
+        ),
         onPressed: () => context.go('/lobbies/room/${widget.code}'),
       ),
       title: Column(
@@ -654,7 +800,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
           ),
           Text(
-            'Phase ${lobby.phaseIndex + 1}/${mysteryCase.phases.length} · $minutes:$seconds',
+            strings.tr(
+              de: 'Phase ${lobby.phaseIndex + 1}/${mysteryCase.phases.length} | $minutes:$seconds',
+              en: 'Phase ${lobby.phaseIndex + 1}/${mysteryCase.phases.length} | $minutes:$seconds',
+              fr: 'Phase ${lobby.phaseIndex + 1}/${mysteryCase.phases.length} | $minutes:$seconds',
+              es: 'Fase ${lobby.phaseIndex + 1}/${mysteryCase.phases.length} | $minutes:$seconds',
+            ),
             style: TextStyle(
               fontSize: 12,
               color: Colors.white.withOpacity(0.58),
@@ -665,7 +816,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
       actions: [
         _AppBarToggle(
           icon: Icons.chat_rounded,
-          label: 'Chat',
+          label: strings.tr(
+            de: 'Chat',
+            en: 'Chat',
+            fr: 'Chat',
+            es: 'Chat',
+          ),
           isActive: _openWindows.contains(_WindowId.chat),
           activeColor: AppPalette.gold,
           onTap: () => _toggleWindow(_WindowId.chat),
@@ -673,7 +829,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
         const SizedBox(width: 6),
         _AppBarToggle(
           icon: Icons.edit_note_rounded,
-          label: 'Notizen',
+          label: strings.tr(
+            de: 'Notizen',
+            en: 'Notes',
+            fr: 'Notes',
+            es: 'Notas',
+          ),
           isActive: _openWindows.contains(_WindowId.notes),
           activeColor: Colors.tealAccent,
           onTap: () => _toggleWindow(_WindowId.notes),
@@ -681,7 +842,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
         const SizedBox(width: 6),
         _AppBarToggle(
           icon: Icons.inventory_2_rounded,
-          label: 'Beweise',
+          label: strings.tr(
+            de: 'Beweise',
+            en: 'Evidence',
+            fr: 'Preuves',
+            es: 'Pruebas',
+          ),
           isActive: _openWindows.contains(_WindowId.evidence),
           activeColor: const Color(0xFFE4B969),
           onTap: () => _toggleWindow(_WindowId.evidence),
@@ -690,14 +856,24 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
         if (viewerRole != null)
           _AppBarToggle(
             icon: Icons.menu_book_rounded,
-            label: 'Meine Rolle',
+            label: strings.tr(
+              de: 'Meine Rolle',
+              en: 'My role',
+              fr: 'Mon role',
+              es: 'Mi rol',
+            ),
             isActive: _openWindows.contains(_WindowId.role),
             activeColor: Colors.purpleAccent,
             onTap: () => _toggleWindow(_WindowId.role),
           ),
         const SizedBox(width: 6),
         IconButton(
-          tooltip: 'Lobby verlassen',
+          tooltip: strings.tr(
+            de: 'Lobby verlassen',
+            en: 'Leave lobby',
+            fr: 'Quitter la lobby',
+            es: 'Salir del lobby',
+          ),
           onPressed: () => _confirmLeaveLobby(viewer),
           icon: const Icon(Icons.logout_rounded),
         ),
@@ -714,6 +890,7 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     LobbyPlayer? viewer,
     bool isHost,
   ) {
+    final strings = ref.read(appStringsProvider);
     final isVotePhase = currentPhase.id == 'vote';
     final isTheoryPhase = currentPhase.id == 'theory' && !lobby.isCompleted;
     final isRevealPhase = currentPhase.id == 'reveal' || lobby.isCompleted;
@@ -738,15 +915,30 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
                     alignment: WrapAlignment.center,
                     children: [
                       _BoardChip(
-                        label: 'Phase ${lobby.phaseIndex + 1}',
+                        label: strings.tr(
+                          de: 'Phase ${lobby.phaseIndex + 1}',
+                          en: 'Phase ${lobby.phaseIndex + 1}',
+                          fr: 'Phase ${lobby.phaseIndex + 1}',
+                          es: 'Fase ${lobby.phaseIndex + 1}',
+                        ),
                         icon: Icons.auto_awesome_mosaic_rounded,
                       ),
                       _BoardChip(
-                        label: '$visibleEvidenceCount Beweise',
+                        label: strings.tr(
+                          de: '$visibleEvidenceCount Beweise',
+                          en: '$visibleEvidenceCount evidence',
+                          fr: '$visibleEvidenceCount preuves',
+                          es: '$visibleEvidenceCount pruebas',
+                        ),
                         icon: Icons.inventory_2_outlined,
                       ),
                       _BoardChip(
-                        label: '$submittedVotes Stimmen',
+                        label: strings.tr(
+                          de: '$submittedVotes Stimmen',
+                          en: '$submittedVotes votes',
+                          fr: '$submittedVotes votes',
+                          es: '$submittedVotes votos',
+                        ),
                         icon: Icons.how_to_vote_rounded,
                       ),
                     ],
@@ -830,7 +1022,12 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
                         color: Colors.white.withOpacity(0.04),
                       ),
                       child: Text(
-                        'Warte auf den Spielleiter...',
+                        strings.tr(
+                          de: 'Warte auf den Spielleiter...',
+                          en: 'Waiting for the host...',
+                          fr: 'En attente de l hote...',
+                          es: 'Esperando al host...',
+                        ),
                         style: TextStyle(color: Colors.white.withOpacity(0.58)),
                       ),
                     ),
@@ -859,16 +1056,37 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     MysteryCase mysteryCase,
     GamePhase currentPhase,
   ) {
+    final strings = ref.read(appStringsProvider);
     if (lobby.phaseIndex >= mysteryCase.phases.length - 1) {
-      return 'Fall abschliessen';
+      return strings.tr(
+        de: 'Fall abschliessen',
+        en: 'Complete case',
+        fr: 'Clore l affaire',
+        es: 'Cerrar caso',
+      );
     }
     if (currentPhase.id == 'vote') {
-      return 'Moerder offenlegen';
+      return strings.tr(
+        de: 'Moerder offenlegen',
+        en: 'Reveal culprit',
+        fr: 'Reveler le coupable',
+        es: 'Revelar al culpable',
+      );
     }
     if (currentPhase.id == 'theory') {
-      return 'Tathergang aufdecken';
+      return strings.tr(
+        de: 'Tathergang aufdecken',
+        en: 'Reveal reconstruction',
+        fr: 'Reveler la reconstruction',
+        es: 'Revelar la reconstruccion',
+      );
     }
-    return 'Naechste Phase';
+    return strings.tr(
+      de: 'Naechste Phase',
+      en: 'Next phase',
+      fr: 'Phase suivante',
+      es: 'Siguiente fase',
+    );
   }
 }
 
@@ -899,6 +1117,7 @@ class _ChatWindowContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
     final visibleMessages = lobby.messages
         .where((message) => _isVisibleForViewer(message, viewer))
         .toList();
@@ -926,7 +1145,12 @@ class _ChatWindowContent extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Senden an',
+                strings.tr(
+                  de: 'Senden an',
+                  en: 'Send to',
+                  fr: 'Envoyer a',
+                  es: 'Enviar a',
+                ),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: Colors.white.withOpacity(0.62),
                     ),
@@ -937,7 +1161,12 @@ class _ChatWindowContent extends ConsumerWidget {
                 child: Row(
                   children: [
                     _TargetChip(
-                      label: 'Lobby',
+                      label: strings.tr(
+                        de: 'Lobby',
+                        en: 'Lobby',
+                        fr: 'Lobby',
+                        es: 'Lobby',
+                      ),
                       isSelected: selectedRecipient == null,
                       onTap: () => onSelectRecipient(null),
                     ),
@@ -1018,7 +1247,12 @@ class _ChatWindowContent extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
-                    'Privat an ${selectedRecipient.name}',
+                    strings.tr(
+                      de: 'Privat an ${selectedRecipient.name}',
+                      en: 'Private to ${selectedRecipient.name}',
+                      fr: 'Prive pour ${selectedRecipient.name}',
+                      es: 'Privado para ${selectedRecipient.name}',
+                    ),
                     style: TextStyle(
                       color: Colors.tealAccent.withOpacity(0.92),
                       fontSize: 12,
@@ -1034,8 +1268,18 @@ class _ChatWindowContent extends ConsumerWidget {
                       style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
                         hintText: selectedRecipient == null
-                            ? 'Nachricht an die Runde...'
-                            : 'Geheimnachricht an ${selectedRecipient.name}...',
+                            ? strings.tr(
+                                de: 'Nachricht an die Runde...',
+                                en: 'Message to the group...',
+                                fr: 'Message au groupe...',
+                                es: 'Mensaje al grupo...',
+                              )
+                            : strings.tr(
+                                de: 'Geheimnachricht an ${selectedRecipient.name}...',
+                                en: 'Secret message to ${selectedRecipient.name}...',
+                                fr: 'Message secret pour ${selectedRecipient.name}...',
+                                es: 'Mensaje secreto para ${selectedRecipient.name}...',
+                              ),
                         hintStyle:
                             TextStyle(color: Colors.white.withOpacity(0.3)),
                         filled: true,
@@ -1111,6 +1355,7 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     final bubbleColor = switch (message.type) {
       ChatMessageType.direct => Colors.tealAccent.withOpacity(isMine ? 0.18 : 0.12),
       ChatMessageType.evidence => const Color(0xFFE4B969).withOpacity(0.12),
@@ -1165,15 +1410,30 @@ class _ChatBubble extends StatelessWidget {
                         const SizedBox(width: 8),
                         _InlineTypePill(
                           label: isMine
-                              ? 'Privat an ${message.recipientPlayerName ?? '...'}'
-                              : 'Privat',
+                              ? strings.tr(
+                                  de: 'Privat an ${message.recipientPlayerName ?? '...'}',
+                                  en: 'Private to ${message.recipientPlayerName ?? '...'}',
+                                  fr: 'Prive pour ${message.recipientPlayerName ?? '...'}',
+                                  es: 'Privado para ${message.recipientPlayerName ?? '...'}',
+                                )
+                              : strings.tr(
+                                  de: 'Privat',
+                                  en: 'Private',
+                                  fr: 'Prive',
+                                  es: 'Privado',
+                                ),
                           color: Colors.tealAccent,
                         ),
                       ],
                       if (message.type == ChatMessageType.evidence) ...[
                         const SizedBox(width: 8),
-                        const _InlineTypePill(
-                          label: 'Beweis',
+                        _InlineTypePill(
+                          label: strings.tr(
+                            de: 'Beweis',
+                            en: 'Evidence',
+                            fr: 'Preuve',
+                            es: 'Prueba',
+                          ),
                           color: Color(0xFFE4B969),
                         ),
                       ],
@@ -1272,6 +1532,7 @@ class _VotePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     final activePlayerCount = lobby.players.where((player) => player.isOnline).length;
     final viewerVote = lobby.votes
         .where((vote) => vote.voterPlayerId == viewer.id)
@@ -1290,14 +1551,24 @@ class _VotePanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Abstimmung',
+            strings.tr(
+              de: 'Abstimmung',
+              en: 'Voting',
+              fr: 'Vote',
+              es: 'Votacion',
+            ),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Wen haeltst du fuer den Moerder? Deine Stimme kann bis zur Aufloesung noch geaendert werden.',
+            strings.tr(
+              de: 'Wen haeltst du fuer den Moerder? Deine Stimme kann bis zur Aufloesung noch geaendert werden.',
+              en: 'Who do you think is the culprit? You can still change your vote until the reveal.',
+              fr: 'Qui penses-tu etre le coupable ? Tu peux encore modifier ton vote jusqu a la revelation.',
+              es: 'Quien crees que es el culpable? Aun puedes cambiar tu voto hasta la revelacion.',
+            ),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -1316,7 +1587,12 @@ class _VotePanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            '${lobby.votes.length}/$activePlayerCount Stimmen abgegeben',
+            strings.tr(
+              de: '${lobby.votes.length}/$activePlayerCount Stimmen abgegeben',
+              en: '${lobby.votes.length}/$activePlayerCount votes submitted',
+              fr: '${lobby.votes.length}/$activePlayerCount votes soumis',
+              es: '${lobby.votes.length}/$activePlayerCount votos enviados',
+            ),
             style: TextStyle(
               color: Colors.white.withOpacity(0.64),
               fontSize: 12,
@@ -1339,112 +1615,272 @@ MysteryRole? _culpritRoleForCase(MysteryCase mysteryCase) {
 List<_RevealBeat> _buildRevealBeats(
   MysteryCase mysteryCase,
   MysteryRole culpritRole,
+  AppStrings strings,
 ) {
   switch (mysteryCase.id) {
     case 'villa_no_7':
       return [
         _RevealBeat(
-          title: 'Vor dem Dinner',
-          body:
-              '${culpritRole.name} merkte frueh, dass sich der Abend nicht mehr kontrollieren liess. ${culpritRole.motive}',
+          title: strings.tr(
+            de: 'Vor dem Dinner',
+            en: 'Before dinner',
+            fr: 'Avant le diner',
+            es: 'Antes de la cena',
+          ),
+          body: strings.tr(
+            de: '${culpritRole.name} merkte frueh, dass sich der Abend nicht mehr kontrollieren liess. ${culpritRole.motive}',
+            en: '${culpritRole.name} realized early that the evening could no longer be controlled. ${culpritRole.motive}',
+            fr: '${culpritRole.name} a compris tres tot que la soiree ne pouvait plus etre maitrisee. ${culpritRole.motive}',
+            es: '${culpritRole.name} se dio cuenta pronto de que la noche ya no podia controlarse. ${culpritRole.motive}',
+          ),
         ),
         _RevealBeat(
-          title: 'Der entscheidende Augenblick',
-          body:
-              'Als die Stimmung in der Villa kippte, nutzte ${culpritRole.name} einen kurzen unbeobachteten Moment im Schutz der Unruhe. ${culpritRole.secret}',
+          title: strings.tr(
+            de: 'Der entscheidende Augenblick',
+            en: 'The decisive moment',
+            fr: 'Le moment decisif',
+            es: 'El momento decisivo',
+          ),
+          body: strings.tr(
+            de: 'Als die Stimmung in der Villa kippte, nutzte ${culpritRole.name} einen kurzen unbeobachteten Moment im Schutz der Unruhe. ${culpritRole.secret}',
+            en: 'As the mood in the villa shifted, ${culpritRole.name} used a brief unwatched moment under cover of the unrest. ${culpritRole.secret}',
+            fr: 'Quand l atmosphere a bascule dans la villa, ${culpritRole.name} a profite d un bref instant sans surveillance a l abri du desordre. ${culpritRole.secret}',
+            es: 'Cuando el ambiente en la villa cambio, ${culpritRole.name} aprovecho un breve momento sin ser visto al amparo del caos. ${culpritRole.secret}',
+          ),
         ),
         _RevealBeat(
-          title: 'Die falsche Spur',
-          body:
-              'Direkt danach stuetzte sich ${culpritRole.name} auf das eigene Alibi und liess die Runde auf andere Konflikte schauen: ${culpritRole.alibi}',
+          title: strings.tr(
+            de: 'Die falsche Spur',
+            en: 'The false trail',
+            fr: 'La fausse piste',
+            es: 'La pista falsa',
+          ),
+          body: strings.tr(
+            de: 'Direkt danach stuetzte sich ${culpritRole.name} auf das eigene Alibi und liess die Runde auf andere Konflikte schauen: ${culpritRole.alibi}',
+            en: 'Right after that, ${culpritRole.name} leaned on their alibi and pushed the group toward other conflicts: ${culpritRole.alibi}',
+            fr: 'Juste apres, ${culpritRole.name} s est appuye sur son alibi et a pousse le groupe a regarder d autres conflits : ${culpritRole.alibi}',
+            es: 'Justo despues, ${culpritRole.name} se apoyo en su coartada e hizo que el grupo mirara otros conflictos: ${culpritRole.alibi}',
+          ),
         ),
         _RevealBeat(
-          title: 'Warum es aufflog',
-          body:
-              'Die Widersprueche wurden am Ende zu deutlich. Besonders dieser Verdachtsmoment konnte nicht mehr erklaert werden: ${culpritRole.suspicion}',
+          title: strings.tr(
+            de: 'Warum es aufflog',
+            en: 'Why it unraveled',
+            fr: 'Pourquoi tout a craque',
+            es: 'Por que se descubrio',
+          ),
+          body: strings.tr(
+            de: 'Die Widersprueche wurden am Ende zu deutlich. Besonders dieser Verdachtsmoment konnte nicht mehr erklaert werden: ${culpritRole.suspicion}',
+            en: 'In the end, the contradictions became too obvious. This clue in particular could no longer be explained away: ${culpritRole.suspicion}',
+            fr: 'A la fin, les contradictions sont devenues trop evidentes. Cet element en particulier ne pouvait plus etre explique : ${culpritRole.suspicion}',
+            es: 'Al final, las contradicciones se volvieron demasiado evidentes. Este indicio en particular ya no pudo explicarse: ${culpritRole.suspicion}',
+          ),
         ),
       ];
     case 'aurelia_express':
       return [
         _RevealBeat(
-          title: 'Noch vor Mitternacht',
-          body:
-              '${culpritRole.name} bereitete den Abend auf dem Zug lange vor und hielt den Druck bis zuletzt verborgen. ${culpritRole.motive}',
+          title: strings.tr(
+            de: 'Noch vor Mitternacht',
+            en: 'Before midnight',
+            fr: 'Avant minuit',
+            es: 'Antes de medianoche',
+          ),
+          body: strings.tr(
+            de: '${culpritRole.name} bereitete den Abend auf dem Zug lange vor und hielt den Druck bis zuletzt verborgen. ${culpritRole.motive}',
+            en: '${culpritRole.name} prepared the evening on the train long in advance and kept the pressure hidden until the end. ${culpritRole.motive}',
+            fr: '${culpritRole.name} a prepare la soiree dans le train bien a l avance et a cache la pression jusqu au bout. ${culpritRole.motive}',
+            es: '${culpritRole.name} preparo la noche en el tren con mucha antelacion y oculto la presion hasta el final. ${culpritRole.motive}',
+          ),
         ),
         _RevealBeat(
-          title: 'Im Rhythmus des Zuges',
-          body:
-              'Zwischen Umsteigen, Geraeuschen und Bewegung bot der Zug genau das Zeitfenster, das fuer die Tat noetig war. ${culpritRole.secret}',
+          title: strings.tr(
+            de: 'Im Rhythmus des Zuges',
+            en: 'In the rhythm of the train',
+            fr: 'Au rythme du train',
+            es: 'Al ritmo del tren',
+          ),
+          body: strings.tr(
+            de: 'Zwischen Umsteigen, Geraeuschen und Bewegung bot der Zug genau das Zeitfenster, das fuer die Tat noetig war. ${culpritRole.secret}',
+            en: 'Between transfers, noise and motion, the train offered exactly the window needed for the crime. ${culpritRole.secret}',
+            fr: 'Entre les correspondances, les bruits et le mouvement, le train a offert exactement la fenetre necessaire au crime. ${culpritRole.secret}',
+            es: 'Entre transbordos, ruidos y movimiento, el tren ofrecio exactamente la ventana necesaria para el crimen. ${culpritRole.secret}',
+          ),
         ),
         _RevealBeat(
-          title: 'Deckung',
-          body:
-              'Danach stellte ${culpritRole.name} die eigene Version des Abends in den Vordergrund und klammerte sich an dieses Alibi: ${culpritRole.alibi}',
+          title: strings.tr(
+            de: 'Deckung',
+            en: 'Cover',
+            fr: 'Couverture',
+            es: 'Cobertura',
+          ),
+          body: strings.tr(
+            de: 'Danach stellte ${culpritRole.name} die eigene Version des Abends in den Vordergrund und klammerte sich an dieses Alibi: ${culpritRole.alibi}',
+            en: 'Afterward, ${culpritRole.name} pushed their own version of the evening and clung to this alibi: ${culpritRole.alibi}',
+            fr: 'Ensuite, ${culpritRole.name} a mis en avant sa propre version de la soiree et s est accroche a cet alibi : ${culpritRole.alibi}',
+            es: 'Despues, ${culpritRole.name} puso en primer plano su propia version de la noche y se aferro a esta coartada: ${culpritRole.alibi}',
+          ),
         ),
         _RevealBeat(
-          title: 'Der Bruch in der Geschichte',
-          body:
-              'Erst spaeter fiel auf, dass ein Detail nie zu den restlichen Aussagen passte: ${culpritRole.suspicion}',
+          title: strings.tr(
+            de: 'Der Bruch in der Geschichte',
+            en: 'The break in the story',
+            fr: 'La faille dans le recit',
+            es: 'La grieta en la historia',
+          ),
+          body: strings.tr(
+            de: 'Erst spaeter fiel auf, dass ein Detail nie zu den restlichen Aussagen passte: ${culpritRole.suspicion}',
+            en: 'Only later did it become clear that one detail never matched the other statements: ${culpritRole.suspicion}',
+            fr: 'Ce n est que plus tard qu on a remarque qu un detail ne collait jamais avec les autres declarations : ${culpritRole.suspicion}',
+            es: 'Solo mas tarde se noto que un detalle nunca encajaba con las otras declaraciones: ${culpritRole.suspicion}',
+          ),
         ),
       ];
     case 'crimson_masquerade':
       return [
         _RevealBeat(
-          title: 'Hinter der Maske',
-          body:
-              'Noch waehrend des Festes schob ${culpritRole.name} die eigenen Interessen ueber jede Loyalitaet. ${culpritRole.motive}',
+          title: strings.tr(
+            de: 'Hinter der Maske',
+            en: 'Behind the mask',
+            fr: 'Derriere le masque',
+            es: 'Detras de la mascara',
+          ),
+          body: strings.tr(
+            de: 'Noch waehrend des Festes schob ${culpritRole.name} die eigenen Interessen ueber jede Loyalitaet. ${culpritRole.motive}',
+            en: 'Even during the celebration, ${culpritRole.name} placed personal interests above every loyalty. ${culpritRole.motive}',
+            fr: 'Pendant la fete, ${culpritRole.name} a place ses propres interets au-dessus de toute loyaute. ${culpritRole.motive}',
+            es: 'Incluso durante la fiesta, ${culpritRole.name} puso sus propios intereses por encima de cualquier lealtad. ${culpritRole.motive}',
+          ),
         ),
         _RevealBeat(
-          title: 'Im Schatten des Balls',
-          body:
-              'Die Verkleidungen und die vielen Bewegungen im Saal verschafften genau die Tarnung, die fuer den Angriff gebraucht wurde. ${culpritRole.secret}',
+          title: strings.tr(
+            de: 'Im Schatten des Balls',
+            en: 'In the shadow of the ball',
+            fr: 'Dans l ombre du bal',
+            es: 'En la sombra del baile',
+          ),
+          body: strings.tr(
+            de: 'Die Verkleidungen und die vielen Bewegungen im Saal verschafften genau die Tarnung, die fuer den Angriff gebraucht wurde. ${culpritRole.secret}',
+            en: 'The disguises and constant movement in the hall created exactly the cover needed for the attack. ${culpritRole.secret}',
+            fr: 'Les deguisements et les nombreux mouvements dans la salle ont offert exactement la couverture necessaire a l attaque. ${culpritRole.secret}',
+            es: 'Los disfraces y el constante movimiento en el salon dieron exactamente la cobertura necesaria para el ataque. ${culpritRole.secret}',
+          ),
         ),
         _RevealBeat(
-          title: 'Inszenierte Ruhe',
-          body:
-              'Anschliessend praesentierte ${culpritRole.name} der Runde eine kontrollierte Version des Abends: ${culpritRole.alibi}',
+          title: strings.tr(
+            de: 'Inszenierte Ruhe',
+            en: 'Staged calm',
+            fr: 'Calme mis en scene',
+            es: 'Calma fingida',
+          ),
+          body: strings.tr(
+            de: 'Anschliessend praesentierte ${culpritRole.name} der Runde eine kontrollierte Version des Abends: ${culpritRole.alibi}',
+            en: 'Afterward, ${culpritRole.name} presented the group with a controlled version of the evening: ${culpritRole.alibi}',
+            fr: 'Ensuite, ${culpritRole.name} a presente au groupe une version maitrisee de la soiree : ${culpritRole.alibi}',
+            es: 'Despues, ${culpritRole.name} presento al grupo una version controlada de la noche: ${culpritRole.alibi}',
+          ),
         ),
         _RevealBeat(
-          title: 'Der verratene Fehler',
-          body:
-              'Am Ende blieb eine Spur uebrig, die nicht mehr zu erklaeren war und alles umdrehte: ${culpritRole.suspicion}',
+          title: strings.tr(
+            de: 'Der verratene Fehler',
+            en: 'The betraying mistake',
+            fr: 'L erreur revelatrice',
+            es: 'El error revelador',
+          ),
+          body: strings.tr(
+            de: 'Am Ende blieb eine Spur uebrig, die nicht mehr zu erklaeren war und alles umdrehte: ${culpritRole.suspicion}',
+            en: 'In the end, one trace remained that could no longer be explained and turned everything around: ${culpritRole.suspicion}',
+            fr: 'A la fin, il est reste une trace impossible a expliquer qui a tout fait basculer : ${culpritRole.suspicion}',
+            es: 'Al final quedo un rastro que ya no pudo explicarse y lo cambio todo: ${culpritRole.suspicion}',
+          ),
         ),
       ];
     case 'lantern_society':
       return [
         _RevealBeat(
-          title: 'Vor der Zeremonie',
-          body:
-              '${culpritRole.name} trug den Konflikt schon in den ersten Minuten des Abends in sich. ${culpritRole.motive}',
+          title: strings.tr(
+            de: 'Vor der Zeremonie',
+            en: 'Before the ceremony',
+            fr: 'Avant la ceremonie',
+            es: 'Antes de la ceremonia',
+          ),
+          body: strings.tr(
+            de: '${culpritRole.name} trug den Konflikt schon in den ersten Minuten des Abends in sich. ${culpritRole.motive}',
+            en: '${culpritRole.name} carried the conflict within from the very first minutes of the evening. ${culpritRole.motive}',
+            fr: '${culpritRole.name} portait deja le conflit en lui des les premieres minutes de la soiree. ${culpritRole.motive}',
+            es: '${culpritRole.name} ya llevaba el conflicto dentro desde los primeros minutos de la noche. ${culpritRole.motive}',
+          ),
         ),
         _RevealBeat(
-          title: 'Der Zugriff',
-          body:
-              'Zwischen Ritual, Kerzenlicht und Ablenkung entstand die Gelegenheit, den Plan umzusetzen. ${culpritRole.secret}',
+          title: strings.tr(
+            de: 'Der Zugriff',
+            en: 'The strike',
+            fr: 'Le passage a l acte',
+            es: 'La ejecucion',
+          ),
+          body: strings.tr(
+            de: 'Zwischen Ritual, Kerzenlicht und Ablenkung entstand die Gelegenheit, den Plan umzusetzen. ${culpritRole.secret}',
+            en: 'Between ritual, candlelight and distraction, the opportunity arose to carry out the plan. ${culpritRole.secret}',
+            fr: 'Entre le rituel, les bougies et la diversion, l occasion de mettre le plan a execution est apparue. ${culpritRole.secret}',
+            es: 'Entre el ritual, la luz de las velas y la distraccion, surgio la oportunidad de ejecutar el plan. ${culpritRole.secret}',
+          ),
         ),
         _RevealBeat(
-          title: 'Verdeckte Spuren',
-          body:
-              'Danach setzte ${culpritRole.name} darauf, dass dieses Alibi und die vielen Geheimnisse der Gruppe genug Schutz bieten wuerden: ${culpritRole.alibi}',
+          title: strings.tr(
+            de: 'Verdeckte Spuren',
+            en: 'Hidden traces',
+            fr: 'Traces couvertes',
+            es: 'Huellas ocultas',
+          ),
+          body: strings.tr(
+            de: 'Danach setzte ${culpritRole.name} darauf, dass dieses Alibi und die vielen Geheimnisse der Gruppe genug Schutz bieten wuerden: ${culpritRole.alibi}',
+            en: 'Afterward, ${culpritRole.name} relied on this alibi and the group s many secrets to provide enough cover: ${culpritRole.alibi}',
+            fr: 'Ensuite, ${culpritRole.name} a compte sur cet alibi et sur les nombreux secrets du groupe pour fournir une protection suffisante : ${culpritRole.alibi}',
+            es: 'Despues, ${culpritRole.name} confio en que esta coartada y los muchos secretos del grupo le darian suficiente cobertura: ${culpritRole.alibi}',
+          ),
         ),
         _RevealBeat(
-          title: 'Die letzte Unstimmigkeit',
-          body:
-              'Doch ausgerechnet ein scheinbar kleines Detail riss die Fassade ein: ${culpritRole.suspicion}',
+          title: strings.tr(
+            de: 'Die letzte Unstimmigkeit',
+            en: 'The final inconsistency',
+            fr: 'La derniere incoherence',
+            es: 'La ultima incoherencia',
+          ),
+          body: strings.tr(
+            de: 'Doch ausgerechnet ein scheinbar kleines Detail riss die Fassade ein: ${culpritRole.suspicion}',
+            en: 'But of all things, one seemingly small detail tore down the facade: ${culpritRole.suspicion}',
+            fr: 'Pourtant, un detail apparemment minime a fait tomber la facade : ${culpritRole.suspicion}',
+            es: 'Pero justo un detalle aparentemente pequeno hizo caer la fachada: ${culpritRole.suspicion}',
+          ),
         ),
       ];
     default:
       return [
         _RevealBeat(
-          title: 'Motiv',
+          title: strings.tr(
+            de: 'Motiv',
+            en: 'Motive',
+            fr: 'Mobile',
+            es: 'Motivo',
+          ),
           body: culpritRole.motive,
         ),
         _RevealBeat(
-          title: 'Verdecktes Geheimnis',
+          title: strings.tr(
+            de: 'Verdecktes Geheimnis',
+            en: 'Hidden secret',
+            fr: 'Secret cache',
+            es: 'Secreto oculto',
+          ),
           body: culpritRole.secret,
         ),
         _RevealBeat(
-          title: 'Alibi und Bruchstelle',
+          title: strings.tr(
+            de: 'Alibi und Bruchstelle',
+            en: 'Alibi and weak point',
+            fr: 'Alibi et faille',
+            es: 'Coartada y punto debil',
+          ),
           body: '${culpritRole.alibi}\n\n${culpritRole.suspicion}',
         ),
       ];
@@ -1473,6 +1909,7 @@ class _TheoryPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     final culpritRole = _culpritRoleForCase(mysteryCase);
     if (culpritRole == null) {
       return Container(
@@ -1484,8 +1921,13 @@ class _TheoryPanel extends StatelessWidget {
           color: Colors.white.withOpacity(0.04),
           border: Border.all(color: Colors.white.withOpacity(0.08)),
         ),
-        child: const Text(
-          'Die Aufloesung fuer diesen Fall ist noch nicht hinterlegt.',
+        child: Text(
+          strings.tr(
+            de: 'Die Aufloesung fuer diesen Fall ist noch nicht hinterlegt.',
+            en: 'The reveal for this case has not been added yet.',
+            fr: 'La revelation pour cette affaire n est pas encore renseignee.',
+            es: 'La resolucion de este caso todavia no esta preparada.',
+          ),
         ),
       );
     }
@@ -1503,7 +1945,12 @@ class _TheoryPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Tathergang diskutieren',
+            strings.tr(
+              de: 'Tathergang diskutieren',
+              en: 'Discuss the reconstruction',
+              fr: 'Discuter de la reconstruction',
+              es: 'Debatir la reconstruccion',
+            ),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppPalette.gold,
@@ -1511,32 +1958,57 @@ class _TheoryPanel extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '${culpritRole.name} war der Moerder.',
+            strings.tr(
+              de: '${culpritRole.name} war der Moerder.',
+              en: '${culpritRole.name} was the culprit.',
+              fr: '${culpritRole.name} etait le coupable.',
+              es: '${culpritRole.name} era el culpable.',
+            ),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Bevor die finale Rekonstruktion sichtbar wird, sammelt die Runde jetzt ihre Theorie zum Ablauf der Tat.',
+            strings.tr(
+              de: 'Bevor die finale Rekonstruktion sichtbar wird, sammelt die Runde jetzt ihre Theorie zum Ablauf der Tat.',
+              en: 'Before the final reconstruction becomes visible, the group now shares its theory about how the crime happened.',
+              fr: 'Avant que la reconstruction finale ne devienne visible, le groupe rassemble maintenant sa theorie sur le deroulement du crime.',
+              es: 'Antes de que se vea la reconstruccion final, el grupo comparte ahora su teoria sobre como ocurrio el crimen.',
+            ),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 18),
-          const Wrap(
+          Wrap(
             spacing: 12,
             runSpacing: 12,
             children: [
               _TheoryPromptChip(
                 icon: Icons.schedule_rounded,
-                label: 'Wann kippte der Abend?',
+                label: strings.tr(
+                  de: 'Wann kippte der Abend?',
+                  en: 'When did the evening turn?',
+                  fr: 'Quand la soiree a-t-elle bascule ?',
+                  es: 'Cuando cambio la noche?',
+                ),
               ),
               _TheoryPromptChip(
                 icon: Icons.visibility_off_rounded,
-                label: 'Welche Gelegenheit wurde genutzt?',
+                label: strings.tr(
+                  de: 'Welche Gelegenheit wurde genutzt?',
+                  en: 'What opportunity was used?',
+                  fr: 'Quelle occasion a ete utilisee ?',
+                  es: 'Que oportunidad se aprovecho?',
+                ),
               ),
               _TheoryPromptChip(
                 icon: Icons.alt_route_rounded,
-                label: 'Welche falsche Spur blieb zurueck?',
+                label: strings.tr(
+                  de: 'Welche falsche Spur blieb zurueck?',
+                  en: 'Which false trail was left behind?',
+                  fr: 'Quelle fausse piste est restee ?',
+                  es: 'Que pista falsa quedo atras?',
+                ),
               ),
             ],
           ),
@@ -1549,7 +2021,12 @@ class _TheoryPanel extends StatelessWidget {
               color: Colors.white.withOpacity(0.03),
             ),
             child: Text(
-              'Diskutiert jetzt gemeinsam im Chat. Der Spielleiter kann anschliessend den genauen Tathergang aufdecken.',
+              strings.tr(
+                de: 'Diskutiert jetzt gemeinsam im Chat. Der Spielleiter kann anschliessend den genauen Tathergang aufdecken.',
+                en: 'Discuss it together in the chat now. Afterwards, the host can reveal the exact reconstruction.',
+                fr: 'Discutez-en maintenant ensemble dans le chat. Ensuite, l hote pourra reveler la reconstruction exacte.',
+                es: 'Comentadlo ahora juntos en el chat. Despues, el host podra revelar la reconstruccion exacta.',
+              ),
               style: TextStyle(
                 color: Colors.white.withOpacity(0.82),
                 height: 1.5,
@@ -1573,6 +2050,7 @@ class _ResultsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     final culpritRole = _culpritRoleForCase(mysteryCase);
 
     if (culpritRole == null) {
@@ -1585,8 +2063,13 @@ class _ResultsPanel extends StatelessWidget {
           color: Colors.white.withOpacity(0.04),
           border: Border.all(color: Colors.white.withOpacity(0.08)),
         ),
-        child: const Text(
-          'Die Aufloesung fuer diesen Fall ist noch nicht hinterlegt.',
+        child: Text(
+          strings.tr(
+            de: 'Die Aufloesung fuer diesen Fall ist noch nicht hinterlegt.',
+            en: 'The reveal for this case has not been added yet.',
+            fr: 'La revelation pour cette affaire n est pas encore renseignee.',
+            es: 'La resolucion de este caso todavia no esta preparada.',
+          ),
         ),
       );
     }
@@ -1625,7 +2108,7 @@ class _ResultsPanel extends StatelessWidget {
         );
       }
     }
-    final revealBeats = _buildRevealBeats(mysteryCase, culpritRole);
+    final revealBeats = _buildRevealBeats(mysteryCase, culpritRole, strings);
 
     final playerRows = lobby.players.map((player) {
       final vote = lobby.votes.where((entry) => entry.voterPlayerId == player.id).firstOrNull;
@@ -1635,7 +2118,13 @@ class _ResultsPanel extends StatelessWidget {
       final guessedCorrectly = guessedRole?.id == culpritRole.id;
       return _PlayerSummaryRow(
         playerName: player.name,
-        guessLabel: guessedRole?.name ?? 'Keine Stimme',
+        guessLabel: guessedRole?.name ??
+            strings.tr(
+              de: 'Keine Stimme',
+              en: 'No vote',
+              fr: 'Aucun vote',
+              es: 'Sin voto',
+            ),
         guessedCorrectly: guessedCorrectly,
         messageCount: messageCounts[player.name] ?? 0,
         directMessageCount: directMessageCounts[player.name] ?? 0,
@@ -1663,7 +2152,12 @@ class _ResultsPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Aufloesung',
+            strings.tr(
+              de: 'Aufloesung',
+              en: 'Reveal',
+              fr: 'Revelation',
+              es: 'Resolucion',
+            ),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: AppPalette.gold,
@@ -1671,16 +2165,33 @@ class _ResultsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '${culpritRole.name} war der Moerder.',
+            strings.tr(
+              de: '${culpritRole.name} war der Moerder.',
+              en: '${culpritRole.name} was the culprit.',
+              fr: '${culpritRole.name} etait le coupable.',
+              es: '${culpritRole.name} era el culpable.',
+            ),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 8),
-          Text('Motiv: ${culpritRole.motive}'),
+          Text(
+            strings.tr(
+              de: 'Motiv: ${culpritRole.motive}',
+              en: 'Motive: ${culpritRole.motive}',
+              fr: 'Mobile : ${culpritRole.motive}',
+              es: 'Motivo: ${culpritRole.motive}',
+            ),
+          ),
           const SizedBox(height: 22),
           Text(
-            'Rekonstruktion des Abends',
+            strings.tr(
+              de: 'Rekonstruktion des Abends',
+              en: 'Reconstruction of the evening',
+              fr: 'Reconstruction de la soiree',
+              es: 'Reconstruccion de la noche',
+            ),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -1698,22 +2209,42 @@ class _ResultsPanel extends StatelessWidget {
             runSpacing: 12,
             children: [
               _ResultMetric(
-                label: 'Richtige Tipps',
+                label: strings.tr(
+                  de: 'Richtige Tipps',
+                  en: 'Correct guesses',
+                  fr: 'Bons pronostics',
+                  es: 'Aciertos',
+                ),
                 value: '${playerRows.where((row) => row.guessedCorrectly).length}',
               ),
               _ResultMetric(
-                label: 'Nachrichten',
+                label: strings.tr(
+                  de: 'Nachrichten',
+                  en: 'Messages',
+                  fr: 'Messages',
+                  es: 'Mensajes',
+                ),
                 value: '${messageCounts.values.fold<int>(0, (a, b) => a + b)}',
               ),
               _ResultMetric(
-                label: 'Beweise',
+                label: strings.tr(
+                  de: 'Beweise',
+                  en: 'Evidence',
+                  fr: 'Preuves',
+                  es: 'Pruebas',
+                ),
                 value: '${lobby.evidences.length}',
               ),
             ],
           ),
           const SizedBox(height: 22),
           Text(
-            'Abstimmungsergebnis',
+            strings.tr(
+              de: 'Abstimmungsergebnis',
+              en: 'Voting result',
+              fr: 'Resultat du vote',
+              es: 'Resultado de la votacion',
+            ),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -1732,7 +2263,12 @@ class _ResultsPanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            'Statistiken zum Schluss',
+            strings.tr(
+              de: 'Statistiken zum Schluss',
+              en: 'Final statistics',
+              fr: 'Statistiques finales',
+              es: 'Estadisticas finales',
+            ),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -1830,12 +2366,18 @@ class _EvidenceWindowContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     if (evidences.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            'Noch keine Beweise freigegeben. Neue Briefe tauchen waehrend der naechsten Phasen auf.',
+            strings.tr(
+              de: 'Noch keine Beweise freigegeben. Neue Briefe tauchen waehrend der naechsten Phasen auf.',
+              en: 'No evidence has been released yet. New letters will appear during the next phases.',
+              fr: 'Aucune preuve n a encore ete revelee. De nouvelles lettres apparaitront pendant les prochaines phases.',
+              es: 'Todavia no se ha revelado ninguna prueba. Apareceran nuevas cartas durante las siguientes fases.',
+            ),
             textAlign: TextAlign.center,
           ),
         ),
@@ -1890,7 +2432,12 @@ class _EvidenceWindowContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Phase ${evidence.unlockedInPhase + 1}',
+                        strings.tr(
+                          de: 'Phase ${evidence.unlockedInPhase + 1}',
+                          en: 'Phase ${evidence.unlockedInPhase + 1}',
+                          fr: 'Phase ${evidence.unlockedInPhase + 1}',
+                          es: 'Fase ${evidence.unlockedInPhase + 1}',
+                        ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.white.withOpacity(0.58),
                             ),
@@ -1918,6 +2465,7 @@ class _EvidenceOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     final maxHeight = MediaQuery.of(context).size.height - 48;
     return Positioned.fill(
       child: Material(
@@ -1959,7 +2507,12 @@ class _EvidenceOverlay extends StatelessWidget {
                           IconButton(
                             onPressed: onClose,
                             icon: const Icon(Icons.close_rounded),
-                            tooltip: 'Fenster schliessen',
+                            tooltip: strings.tr(
+                              de: 'Fenster schliessen',
+                              en: 'Close window',
+                              fr: 'Fermer la fenetre',
+                              es: 'Cerrar ventana',
+                            ),
                           ),
                         ],
                       ),
@@ -1987,7 +2540,12 @@ class _EvidenceOverlay extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(22, 0, 22, 22),
                       child: Text(
-                        'Dieser Brief kann spaeter durch einen echten Hinweistext des Falls ersetzt werden.',
+                        strings.tr(
+                          de: 'Dieser Brief kann spaeter durch einen echten Hinweistext des Falls ersetzt werden.',
+                          en: 'This letter can later be replaced by a real case clue text.',
+                          fr: 'Cette lettre pourra plus tard etre remplacee par un vrai texte d indice du cas.',
+                          es: 'Esta carta podra sustituirse mas tarde por un texto real de pista del caso.',
+                        ),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Colors.white.withOpacity(0.58),
                             ),
@@ -2011,6 +2569,7 @@ class _RoleDossierContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(18),
       child: Column(
@@ -2021,24 +2580,90 @@ class _RoleDossierContent extends StatelessWidget {
             runSpacing: 8,
             children: [
               _DossierPill(label: role.name, icon: Icons.person_pin_rounded),
-              const _DossierPill(
-                label: 'Nur fuer dich',
+              _DossierPill(
+                label: strings.tr(
+                  de: 'Nur fuer dich',
+                  en: 'Only for you',
+                  fr: 'Seulement pour toi',
+                  es: 'Solo para ti',
+                ),
                 icon: Icons.lock_outline_rounded,
               ),
             ],
           ),
           const SizedBox(height: 18),
-          _DossierEntry(title: 'Persoenlichkeit', text: role.persona),
-          _DossierEntry(title: 'Geheimnis', text: role.secret),
-          _DossierEntry(title: 'Motiv', text: role.motive),
-          _DossierEntry(title: 'Beziehungen', text: role.relationships),
-          _DossierEntry(title: 'Ziel', text: role.goal),
-          _DossierEntry(title: 'Alibi', text: role.alibi),
-          _DossierEntry(title: 'Verdachtsmoment', text: role.suspicion),
+          _DossierEntry(
+            title: strings.tr(
+              de: 'Persoenlichkeit',
+              en: 'Personality',
+              fr: 'Personnalite',
+              es: 'Personalidad',
+            ),
+            text: role.persona,
+          ),
+          _DossierEntry(
+            title: strings.tr(
+              de: 'Geheimnis',
+              en: 'Secret',
+              fr: 'Secret',
+              es: 'Secreto',
+            ),
+            text: role.secret,
+          ),
+          _DossierEntry(
+            title: strings.tr(
+              de: 'Motiv',
+              en: 'Motive',
+              fr: 'Mobile',
+              es: 'Motivo',
+            ),
+            text: role.motive,
+          ),
+          _DossierEntry(
+            title: strings.tr(
+              de: 'Beziehungen',
+              en: 'Relationships',
+              fr: 'Relations',
+              es: 'Relaciones',
+            ),
+            text: role.relationships,
+          ),
+          _DossierEntry(
+            title: strings.tr(
+              de: 'Ziel',
+              en: 'Goal',
+              fr: 'Objectif',
+              es: 'Objetivo',
+            ),
+            text: role.goal,
+          ),
+          _DossierEntry(
+            title: strings.tr(
+              de: 'Alibi',
+              en: 'Alibi',
+              fr: 'Alibi',
+              es: 'Coartada',
+            ),
+            text: role.alibi,
+          ),
+          _DossierEntry(
+            title: strings.tr(
+              de: 'Verdachtsmoment',
+              en: 'Suspicion',
+              fr: 'Soupcon',
+              es: 'Sospecha',
+            ),
+            text: role.suspicion,
+          ),
           if (role.hiddenClues.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(
-              'Versteckte Hinweise',
+              strings.tr(
+                de: 'Versteckte Hinweise',
+                en: 'Hidden clues',
+                fr: 'Indices caches',
+                es: 'Pistas ocultas',
+              ),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.purpleAccent,
                     fontWeight: FontWeight.w800,
@@ -2073,24 +2698,71 @@ class _RoleDossierContent extends StatelessWidget {
           ],
           const SizedBox(height: 14),
           Text(
-            'Kostuemempfehlung',
+            strings.tr(
+              de: 'Kostuemempfehlung',
+              en: 'Outfit suggestion',
+              fr: 'Suggestion de tenue',
+              es: 'Sugerencia de vestuario',
+            ),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.purpleAccent,
                   fontWeight: FontWeight.w800,
                 ),
           ),
           const SizedBox(height: 10),
-          Text('Neutral: ${role.outfit.neutral}'),
+          Text(
+            strings.tr(
+              de: 'Neutral: ${role.outfit.neutral}',
+              en: 'Neutral: ${role.outfit.neutral}',
+              fr: 'Neutre : ${role.outfit.neutral}',
+              es: 'Neutro: ${role.outfit.neutral}',
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Maskulin: ${role.outfit.masculine}'),
+          Text(
+            strings.tr(
+              de: 'Maskulin: ${role.outfit.masculine}',
+              en: 'Masculine: ${role.outfit.masculine}',
+              fr: 'Masculin : ${role.outfit.masculine}',
+              es: 'Masculino: ${role.outfit.masculine}',
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Feminin: ${role.outfit.feminine}'),
+          Text(
+            strings.tr(
+              de: 'Feminin: ${role.outfit.feminine}',
+              en: 'Feminine: ${role.outfit.feminine}',
+              fr: 'Feminin : ${role.outfit.feminine}',
+              es: 'Femenino: ${role.outfit.feminine}',
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Accessoires: ${role.outfit.accessories.join(', ')}'),
+          Text(
+            strings.tr(
+              de: 'Accessoires: ${role.outfit.accessories.join(', ')}',
+              en: 'Accessories: ${role.outfit.accessories.join(', ')}',
+              fr: 'Accessoires : ${role.outfit.accessories.join(', ')}',
+              es: 'Accesorios: ${role.outfit.accessories.join(', ')}',
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Make-up: ${role.outfit.makeup}'),
+          Text(
+            strings.tr(
+              de: 'Make-up: ${role.outfit.makeup}',
+              en: 'Makeup: ${role.outfit.makeup}',
+              fr: 'Maquillage : ${role.outfit.makeup}',
+              es: 'Maquillaje: ${role.outfit.makeup}',
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Frisur: ${role.outfit.hairstyle}'),
+          Text(
+            strings.tr(
+              de: 'Frisur: ${role.outfit.hairstyle}',
+              en: 'Hairstyle: ${role.outfit.hairstyle}',
+              fr: 'Coiffure : ${role.outfit.hairstyle}',
+              es: 'Peinado: ${role.outfit.hairstyle}',
+            ),
+          ),
           const SizedBox(height: 16),
         ],
       ),
@@ -2174,8 +2846,14 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
     }
 
     final role = _roleNameForPlayer(player);
+    final strings = _stringsOf(context);
     final defaultText =
-        'Echter Name: ${player.name}${role == null ? '' : '\nRolle: $role'}\n\n';
+        strings.tr(
+          de: 'Echter Name: ${player.name}${role == null ? '' : '\nRolle: $role'}\n\n',
+          en: 'Real name: ${player.name}${role == null ? '' : '\nRole: $role'}\n\n',
+          fr: 'Nom reel : ${player.name}${role == null ? '' : '\nRole : $role'}\n\n',
+          es: 'Nombre real: ${player.name}${role == null ? '' : '\nRol: $role'}\n\n',
+        );
     _playerControllers[player.id]?.text = defaultText;
     await prefs.setString(key, defaultText);
     if (mounted) {
@@ -2202,6 +2880,7 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     final players = widget.lobby.players;
     return Column(
       children: [
@@ -2218,13 +2897,20 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
             labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             dividerColor: Colors.white12,
             tabs: [
-              const Tab(
+              Tab(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.notes_rounded, size: 14),
                     SizedBox(width: 6),
-                    Text('Allgemein'),
+                    Text(
+                      strings.tr(
+                        de: 'Allgemein',
+                        en: 'General',
+                        fr: 'General',
+                        es: 'General',
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -2260,8 +2946,12 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
             children: [
               _NoteEditor(
                 controller: widget.generalNotesController,
-                hint:
-                    'Allgemeine Notizen: Verdaechtige, Alibis, offene Fragen...',
+                hint: strings.tr(
+                  de: 'Allgemeine Notizen: Verdaechtige, Alibis, offene Fragen...',
+                  en: 'General notes: suspects, alibis, open questions...',
+                  fr: 'Notes generales : suspects, alibis, questions ouvertes...',
+                  es: 'Notas generales: sospechosos, coartadas, preguntas abiertas...',
+                ),
                 accentColor: Colors.tealAccent,
                 onChanged: widget.onSaveGeneral,
               ),
@@ -2271,10 +2961,15 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
                 final roleName = _roleNameForPlayer(player);
                 return _NoteEditor(
                   controller: controller,
-                  hint: 'Notizen zu ${roleName ?? player.name} (${player.name})...',
+                  hint: strings.tr(
+                    de: 'Notizen zu ${roleName ?? player.name} (${player.name})...',
+                    en: 'Notes about ${roleName ?? player.name} (${player.name})...',
+                    fr: 'Notes sur ${roleName ?? player.name} (${player.name})...',
+                    es: 'Notas sobre ${roleName ?? player.name} (${player.name})...',
+                  ),
                   accentColor: Colors.tealAccent,
                   headerText:
-                      roleName == null ? player.name : '$roleName · ${player.name}',
+                      roleName == null ? player.name : '$roleName | ${player.name}',
                   onChanged: () => _savePlayerNotes(player),
                 );
               }),
@@ -2569,6 +3264,7 @@ class _EvidenceMessageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     return InkWell(
       onTap: onOpen,
       borderRadius: BorderRadius.circular(18),
@@ -2608,7 +3304,12 @@ class _EvidenceMessageCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    'Zum Oeffnen antippen',
+                    strings.tr(
+                      de: 'Zum Oeffnen antippen',
+                      en: 'Tap to open',
+                      fr: 'Toucher pour ouvrir',
+                      es: 'Tocar para abrir',
+                    ),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: AppPalette.gold,
                           fontWeight: FontWeight.w700,
@@ -2738,6 +3439,7 @@ class _ResultMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -2873,15 +3575,43 @@ class _PlayerSummaryRow extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text('Tipp: $guessLabel'),
+          Text(
+            strings.tr(
+              de: 'Tipp: $guessLabel',
+              en: 'Guess: $guessLabel',
+              fr: 'Choix : $guessLabel',
+              es: 'Sospecha: $guessLabel',
+            ),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 10,
             runSpacing: 10,
             children: [
-              _SmallStatPill(label: '$messageCount Nachrichten'),
-              _SmallStatPill(label: '$directMessageCount privat'),
-              _SmallStatPill(label: '$reactionCount Reaktionen'),
+              _SmallStatPill(
+                label: strings.tr(
+                  de: '$messageCount Nachrichten',
+                  en: '$messageCount messages',
+                  fr: '$messageCount messages',
+                  es: '$messageCount mensajes',
+                ),
+              ),
+              _SmallStatPill(
+                label: strings.tr(
+                  de: '$directMessageCount privat',
+                  en: '$directMessageCount private',
+                  fr: '$directMessageCount prives',
+                  es: '$directMessageCount privados',
+                ),
+              ),
+              _SmallStatPill(
+                label: strings.tr(
+                  de: '$reactionCount Reaktionen',
+                  en: '$reactionCount reactions',
+                  fr: '$reactionCount reactions',
+                  es: '$reactionCount reacciones',
+                ),
+              ),
             ],
           ),
         ],
@@ -2992,3 +3722,5 @@ extension _IterableFirstOrNull<T> on Iterable<T> {
     return null;
   }
 }
+
+

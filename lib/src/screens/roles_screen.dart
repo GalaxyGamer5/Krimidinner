@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../localization/app_strings.dart';
 import '../state/app_providers.dart';
 import '../widgets/mystery_shell.dart';
 
@@ -9,6 +10,7 @@ class RolesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
     final archive = ref.watch(mysteryControllerProvider).roleArchive;
 
     return SingleChildScrollView(
@@ -17,25 +19,23 @@ class RolesScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionPanel(
-            title: 'Persönliches Rollenarchiv',
-            subtitle:
-                'Jede Rolle, die du im Verlauf einer Lobby zugewiesen bekommst, wird hier lokal festgehalten. So behältst du Ziel, Signatur und Fallkontext im Blick.',
+            title: strings.rolesArchiveTitle,
+            subtitle: strings.rolesArchiveSubtitle,
             child: archive.isEmpty
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Noch keine Rolle gespeichert.',
+                        strings.noRolesTitle,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 12),
-                      const Text(
-                        'Erstelle eine Lobby oder tritt einem Raum bei, um sofort dein erstes Dossier zu archivieren.',
-                      ),
+                      Text(strings.noRolesBody),
                     ],
                   )
                 : Column(
                     children: archive.map((entry) {
+                      final date = _formatDate(entry.unlockedAt);
                       return Container(
                         margin: const EdgeInsets.only(bottom: 14),
                         padding: const EdgeInsets.all(18),
@@ -51,11 +51,13 @@ class RolesScreen extends ConsumerWidget {
                               runSpacing: 10,
                               children: [
                                 InfoPill(
-                                    label: entry.caseTitle,
-                                    icon: Icons.menu_book_rounded),
+                                  label: entry.caseTitle,
+                                  icon: Icons.menu_book_rounded,
+                                ),
                                 InfoPill(
-                                    label: 'Lobby ${entry.lobbyCode}',
-                                    icon: Icons.key_rounded),
+                                  label: strings.lobbyLabel(entry.lobbyCode),
+                                  icon: Icons.key_rounded,
+                                ),
                               ],
                             ),
                             const SizedBox(height: 14),
@@ -67,12 +69,12 @@ class RolesScreen extends ConsumerWidget {
                             Text(entry.signature),
                             const SizedBox(height: 12),
                             Text(
-                              'Ziel: ${entry.goal}',
+                              strings.goalLabel(entry.goal),
                               style: Theme.of(context).textTheme.titleMedium,
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Freigeschaltet für ${entry.playerName} am ${_formatDate(entry.unlockedAt)}',
+                              strings.unlockedFor(entry.playerName, date),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],

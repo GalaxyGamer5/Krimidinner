@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../localization/app_strings.dart';
 import '../models/mystery_models.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -55,25 +56,55 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = ref.watch(appStringsProvider);
     final state = ref.watch(mysteryControllerProvider);
     final lobby = state.lobbies.where((l) => l.code == widget.code).firstOrNull;
-    final mysteryCase = lobby != null
-        ? ref.watch(mysteryCaseProvider(lobby.caseId))
-        : null;
+    final mysteryCase = lobby != null ? ref.watch(mysteryCaseProvider(lobby.caseId)) : null;
 
     if (lobby == null || mysteryCase == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Rollenakte')),
-        body: const Center(child: Text('Lobby oder Fall nicht gefunden.')),
+        appBar: AppBar(
+          title: Text(strings.tr(
+            de: 'Rollenakte',
+            en: 'Role dossier',
+            fr: 'Dossier de role',
+            es: 'Dossier del rol',
+          )),
+        ),
+        body: Center(
+          child: Text(
+            strings.tr(
+              de: 'Lobby oder Fall nicht gefunden.',
+              en: 'Lobby or case not found.',
+              fr: 'Lobby ou affaire introuvable.',
+              es: 'No se encontro el lobby o el caso.',
+            ),
+          ),
+        ),
       );
     }
 
     final role = mysteryCase.roles.where((r) => r.id == widget.roleId).firstOrNull;
-
     if (role == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Rollenakte')),
-        body: const Center(child: Text('Rolle nicht gefunden.')),
+        appBar: AppBar(
+          title: Text(strings.tr(
+            de: 'Rollenakte',
+            en: 'Role dossier',
+            fr: 'Dossier de role',
+            es: 'Dossier del rol',
+          )),
+        ),
+        body: Center(
+          child: Text(
+            strings.tr(
+              de: 'Rolle nicht gefunden.',
+              en: 'Role not found.',
+              fr: 'Role introuvable.',
+              es: 'Rol no encontrado.',
+            ),
+          ),
+        ),
       );
     }
 
@@ -81,7 +112,14 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Streng geheim: ${role.name}'),
+        title: Text(
+          strings.tr(
+            de: 'Streng geheim: ${role.name}',
+            en: 'Top secret: ${role.name}',
+            fr: 'Strictement secret : ${role.name}',
+            es: 'Alto secreto: ${role.name}',
+          ),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/lobbies/room/${widget.code}'),
@@ -113,16 +151,86 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
                         ],
                       ),
                       const SizedBox(height: 32),
-                      _buildDossierSection(context, 'Persönlichkeit', role.persona),
-                      _buildDossierSection(context, 'Geheimnis', role.secret),
-                      _buildDossierSection(context, 'Motiv', role.motive),
-                      _buildDossierSection(context, 'Beziehungen', role.relationships),
-                      _buildDossierSection(context, 'Ziel', role.goal),
-                      _buildDossierSection(context, 'Alibi', role.alibi),
-                      _buildDossierSection(context, 'Verdachtsmoment', role.suspicion),
-                      
+                      _buildDossierSection(
+                        context,
+                        strings.tr(
+                          de: 'Persoenlichkeit',
+                          en: 'Personality',
+                          fr: 'Personnalite',
+                          es: 'Personalidad',
+                        ),
+                        role.persona,
+                      ),
+                      _buildDossierSection(
+                        context,
+                        strings.tr(
+                          de: 'Geheimnis',
+                          en: 'Secret',
+                          fr: 'Secret',
+                          es: 'Secreto',
+                        ),
+                        role.secret,
+                      ),
+                      _buildDossierSection(
+                        context,
+                        strings.tr(
+                          de: 'Motiv',
+                          en: 'Motive',
+                          fr: 'Mobile',
+                          es: 'Motivo',
+                        ),
+                        role.motive,
+                      ),
+                      _buildDossierSection(
+                        context,
+                        strings.tr(
+                          de: 'Beziehungen',
+                          en: 'Relationships',
+                          fr: 'Relations',
+                          es: 'Relaciones',
+                        ),
+                        role.relationships,
+                      ),
+                      _buildDossierSection(
+                        context,
+                        strings.tr(
+                          de: 'Ziel',
+                          en: 'Goal',
+                          fr: 'Objectif',
+                          es: 'Objetivo',
+                        ),
+                        role.goal,
+                      ),
+                      _buildDossierSection(
+                        context,
+                        strings.tr(
+                          de: 'Alibi',
+                          en: 'Alibi',
+                          fr: 'Alibi',
+                          es: 'Coartada',
+                        ),
+                        role.alibi,
+                      ),
+                      _buildDossierSection(
+                        context,
+                        strings.tr(
+                          de: 'Verdachtsmoment',
+                          en: 'Suspicion',
+                          fr: 'Soupcon',
+                          es: 'Sospecha',
+                        ),
+                        role.suspicion,
+                      ),
                       const SizedBox(height: 16),
-                      Text('Versteckte Hinweise', style: textTheme.titleLarge),
+                      Text(
+                        strings.tr(
+                          de: 'Versteckte Hinweise',
+                          en: 'Hidden clues',
+                          fr: 'Indices caches',
+                          es: 'Pistas ocultas',
+                        ),
+                        style: textTheme.titleLarge,
+                      ),
                       const SizedBox(height: 16),
                       ...role.hiddenClues.map(
                         (clue) => Padding(
@@ -135,33 +243,83 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
                                 child: Icon(Icons.circle, size: 8, color: AppPalette.gold),
                               ),
                               const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(clue, style: textTheme.bodyLarge),
-                              ),
+                              Expanded(child: Text(clue, style: textTheme.bodyLarge)),
                             ],
                           ),
                         ),
                       ),
                       const SizedBox(height: 24),
-                      Text('Kostümempfehlung', style: textTheme.titleLarge),
+                      Text(
+                        strings.tr(
+                          de: 'Kostuemempfehlung',
+                          en: 'Costume recommendation',
+                          fr: 'Suggestion de costume',
+                          es: 'Sugerencia de vestuario',
+                        ),
+                        style: textTheme.titleLarge,
+                      ),
                       const SizedBox(height: 16),
-                      Text('Neutral: ${role.outfit.neutral}', style: textTheme.bodyLarge),
+                      Text(
+                        strings.tr(
+                          de: 'Neutral: ${role.outfit.neutral}',
+                          en: 'Neutral: ${role.outfit.neutral}',
+                          fr: 'Neutre : ${role.outfit.neutral}',
+                          es: 'Neutral: ${role.outfit.neutral}',
+                        ),
+                        style: textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: 8),
-                      Text('Accessoires: ${role.outfit.accessories.join(', ')}', style: textTheme.bodyLarge),
+                      Text(
+                        strings.tr(
+                          de: 'Accessoires: ${role.outfit.accessories.join(', ')}',
+                          en: 'Accessories: ${role.outfit.accessories.join(', ')}',
+                          fr: 'Accessoires : ${role.outfit.accessories.join(', ')}',
+                          es: 'Accesorios: ${role.outfit.accessories.join(', ')}',
+                        ),
+                        style: textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: 8),
-                      Text('Make-up: ${role.outfit.makeup}', style: textTheme.bodyLarge),
+                      Text(
+                        strings.tr(
+                          de: 'Make-up: ${role.outfit.makeup}',
+                          en: 'Makeup: ${role.outfit.makeup}',
+                          fr: 'Maquillage : ${role.outfit.makeup}',
+                          es: 'Maquillaje: ${role.outfit.makeup}',
+                        ),
+                        style: textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: 8),
-                      Text('Frisur: ${role.outfit.hairstyle}', style: textTheme.bodyLarge),
-                      
+                      Text(
+                        strings.tr(
+                          de: 'Frisur: ${role.outfit.hairstyle}',
+                          en: 'Hairstyle: ${role.outfit.hairstyle}',
+                          fr: 'Coiffure : ${role.outfit.hairstyle}',
+                          es: 'Peinado: ${role.outfit.hairstyle}',
+                        ),
+                        style: textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: 48),
-                      Text('Eigene Notizen', style: textTheme.titleLarge),
+                      Text(
+                        strings.tr(
+                          de: 'Eigene Notizen',
+                          en: 'Personal notes',
+                          fr: 'Notes personnelles',
+                          es: 'Notas personales',
+                        ),
+                        style: textTheme.titleLarge,
+                      ),
                       const SizedBox(height: 16),
                       TextField(
                         controller: _notesController,
                         maxLines: 8,
                         onChanged: (_) => _saveNotes(),
                         decoration: InputDecoration(
-                          hintText: 'Mache dir Notizen über Verdächtige, Lügen oder Alibis...',
+                          hintText: strings.tr(
+                            de: 'Mache dir Notizen ueber Verdaechtige, Luegen oder Alibis...',
+                            en: 'Write down notes about suspects, lies or alibis...',
+                            fr: 'Prends des notes sur les suspects, les mensonges ou les alibis...',
+                            es: 'Toma notas sobre sospechosos, mentiras o coartadas...',
+                          ),
                           filled: true,
                           fillColor: Colors.white.withOpacity(0.03),
                           border: OutlineInputBorder(
@@ -185,9 +343,17 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppPalette.gold)),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppPalette.gold,
+                ),
+          ),
           const SizedBox(height: 8),
-          Text(text, style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5)),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
+          ),
         ],
       ),
     );

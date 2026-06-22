@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../localization/app_strings.dart';
 import '../models/mystery_models.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -12,6 +13,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
     final state = ref.watch(mysteryControllerProvider);
     final latestLobby = state.lobbies.isEmpty ? null : state.lobbies.first;
     final latestCase = latestLobby == null
@@ -24,17 +26,18 @@ class HomeScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionPanel(
-            title: 'Guten Abend, ${state.localAlias}',
-            subtitle:
-                'Starte ruhig und ohne Umwege in den Abend. Alles Weitere erscheint erst, sobald du in einer Lobby bist.',
+            title: strings.homeGreeting(state.localAlias),
+            subtitle: strings.homeSubtitle,
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth >= 860;
                 final welcomeCard = _WelcomeCard(
+                  strings: strings,
                   latestLobby: latestLobby,
                   latestCase: latestCase,
                 );
                 final quickActions = _QuickActions(
+                  strings: strings,
                   latestLobby: latestLobby,
                   onCreateGame: () => context.go('/cases'),
                   onJoinLobby: () => context.go('/lobbies'),
@@ -72,10 +75,12 @@ class HomeScreen extends ConsumerWidget {
 
 class _WelcomeCard extends StatelessWidget {
   const _WelcomeCard({
+    required this.strings,
     required this.latestLobby,
     required this.latestCase,
   });
 
+  final AppStrings strings;
   final LobbySession? latestLobby;
   final MysteryCase? latestCase;
 
@@ -98,25 +103,21 @@ class _WelcomeCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const InfoPill(
-            label: 'Salon',
+          InfoPill(
+            label: strings.navHome,
             icon: Icons.nightlight_round,
             accent: AppPalette.gold,
           ),
           const SizedBox(height: 18),
           Text(
-            latestLobby == null
-                ? 'Hier beginnt dein naechster Krimi-Abend.'
-                : 'Deine letzte Runde ist noch griffbereit.',
+            strings.homeHeroText(latestLobby != null),
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppPalette.parchment,
                 ),
           ),
           const SizedBox(height: 12),
           Text(
-            latestLobby == null
-                ? 'Erstelle ein neues Spiel oder tritt direkt ueber einen Code oder Link einer Lobby bei.'
-                : 'Die Lobby ${latestLobby!.code} wartet noch auf dich. Wenn du magst, kannst du direkt dort weitermachen.',
+            strings.homeHeroBody(latestLobby != null, latestLobby?.code ?? ''),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppPalette.parchment,
                 ),
@@ -133,7 +134,7 @@ class _WelcomeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   InfoPill(
-                    label: 'Offene Lobby ${latestLobby!.code}',
+                    label: strings.openLobbyLabel(latestLobby!.code),
                     icon: Icons.key_rounded,
                     accent: Colors.white,
                   ),
@@ -163,12 +164,14 @@ class _WelcomeCard extends StatelessWidget {
 
 class _QuickActions extends StatelessWidget {
   const _QuickActions({
+    required this.strings,
     required this.latestLobby,
     required this.onCreateGame,
     required this.onJoinLobby,
     required this.onResumeLobby,
   });
 
+  final AppStrings strings;
   final LobbySession? latestLobby;
   final VoidCallback onCreateGame;
   final VoidCallback onJoinLobby;
@@ -179,23 +182,23 @@ class _QuickActions extends StatelessWidget {
     return Column(
       children: [
         _StartActionCard(
-          title: 'Neues Spiel erstellen',
-          subtitle: 'Fall auswaehlen und direkt eine neue Lobby starten.',
+          title: strings.createGame,
+          subtitle: strings.createGameSubtitle,
           icon: Icons.add_circle_outline_rounded,
           onTap: onCreateGame,
         ),
         const SizedBox(height: 12),
         _StartActionCard(
-          title: 'Lobby beitreten',
-          subtitle: 'Per Code oder Einladungslink sofort in eine Runde gehen.',
+          title: strings.joinLobby,
+          subtitle: strings.joinLobbySubtitle,
           icon: Icons.login_rounded,
           onTap: onJoinLobby,
         ),
         if (latestLobby != null && onResumeLobby != null) ...[
           const SizedBox(height: 12),
           _StartActionCard(
-            title: 'Letzte Lobby fortsetzen',
-            subtitle: 'Zur offenen Runde mit dem Code ${latestLobby!.code}.',
+            title: strings.resumeLobby,
+            subtitle: strings.resumeLobbySubtitle(latestLobby!.code),
             icon: Icons.arrow_forward_rounded,
             onTap: onResumeLobby!,
             compact: true,
@@ -249,10 +252,7 @@ class _StartActionCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,

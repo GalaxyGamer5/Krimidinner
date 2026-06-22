@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../localization/app_strings.dart';
 import '../models/mystery_models.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -19,6 +20,7 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = ref.watch(appStringsProvider);
     final cases = ref.watch(mysteryCatalogProvider);
     final visibleCases = selectedCategory == null
         ? cases
@@ -30,7 +32,7 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SectionPanel(
-            title: 'Kuratiertes Krimi-Archiv',
+            title: strings.curatedArchive,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -39,14 +41,13 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
                   runSpacing: 10,
                   children: [
                     FilterChip(
-                      label: const Text('Alle'),
+                      label: Text(strings.filterAll),
                       selected: selectedCategory == null,
-                      onSelected: (_) =>
-                          setState(() => selectedCategory = null),
+                      onSelected: (_) => setState(() => selectedCategory = null),
                     ),
                     ...MysteryCategory.values.map(
                       (category) => FilterChip(
-                        label: Text(category.label),
+                        label: Text(strings.categoryLabel(category)),
                         selected: selectedCategory == category,
                         onSelected: (_) =>
                             setState(() => selectedCategory = category),
@@ -56,7 +57,7 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Aktuell verfügbar: ${visibleCases.length} spielbereite Fälle',
+                  strings.availableCases(visibleCases.length),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],
@@ -82,7 +83,10 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
                 ),
                 itemBuilder: (context, index) {
                   final mysteryCase = visibleCases[index];
-                  return _CaseCard(mysteryCase: mysteryCase);
+                  return _CaseCard(
+                    strings: strings,
+                    mysteryCase: mysteryCase,
+                  );
                 },
               );
             },
@@ -94,8 +98,12 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
 }
 
 class _CaseCard extends StatelessWidget {
-  const _CaseCard({required this.mysteryCase});
+  const _CaseCard({
+    required this.strings,
+    required this.mysteryCase,
+  });
 
+  final AppStrings strings;
   final MysteryCase mysteryCase;
 
   @override
@@ -121,7 +129,7 @@ class _CaseCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             InfoPill(
-              label: mysteryCase.category.label,
+              label: strings.categoryLabel(mysteryCase.category),
               icon: Icons.local_activity_rounded,
               accent: Colors.white,
             ),
@@ -146,10 +154,10 @@ class _CaseCard extends StatelessWidget {
               children: [
                 _MetaBubble(
                   label:
-                      '${mysteryCase.playerMin}-${mysteryCase.playerMax} Spieler',
+                      strings.playersLabel(mysteryCase.playerMin, mysteryCase.playerMax),
                 ),
-                _MetaBubble(label: '${mysteryCase.durationMinutes} Min'),
-                _MetaBubble(label: mysteryCase.difficulty.label),
+                _MetaBubble(label: strings.minutesShort(mysteryCase.durationMinutes)),
+                _MetaBubble(label: strings.difficultyLabel(mysteryCase.difficulty)),
               ],
             ),
             const SizedBox(height: 18),
@@ -162,9 +170,9 @@ class _CaseCard extends StatelessWidget {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text(
-                  'Details öffnen',
-                  style: TextStyle(
+                Text(
+                  strings.openDetails,
+                  style: const TextStyle(
                     color: AppPalette.parchment,
                     fontWeight: FontWeight.w700,
                   ),

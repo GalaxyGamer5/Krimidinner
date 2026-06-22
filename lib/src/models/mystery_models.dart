@@ -556,23 +556,48 @@ class RoleArchiveEntry {
 @immutable
 class FriendProfile {
   const FriendProfile({
+    required this.id,
     required this.name,
-    required this.favoriteScenario,
-    required this.favoriteRole,
-    required this.lastSeen,
-    required this.isOnline,
+    required this.createdAt,
+    this.favoriteScenario,
+    this.favoriteRole,
+    this.note = '',
   });
 
+  final String id;
   final String name;
-  final String favoriteScenario;
-  final String favoriteRole;
-  final String lastSeen;
-  final bool isOnline;
+  final DateTime createdAt;
+  final String? favoriteScenario;
+  final String? favoriteRole;
+  final String note;
+
+  FriendProfile copyWith({
+    String? id,
+    String? name,
+    DateTime? createdAt,
+    String? favoriteScenario,
+    String? favoriteRole,
+    String? note,
+    bool clearFavoriteScenario = false,
+    bool clearFavoriteRole = false,
+  }) {
+    return FriendProfile(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      createdAt: createdAt ?? this.createdAt,
+      favoriteScenario:
+          clearFavoriteScenario ? null : favoriteScenario ?? this.favoriteScenario,
+      favoriteRole:
+          clearFavoriteRole ? null : favoriteRole ?? this.favoriteRole,
+      note: note ?? this.note,
+    );
+  }
 }
 
 @immutable
 class Achievement {
   const Achievement({
+    required this.id,
     required this.title,
     required this.description,
     required this.progress,
@@ -580,6 +605,7 @@ class Achievement {
     required this.icon,
   });
 
+  final String id;
   final String title;
   final String description;
   final double progress;
@@ -587,25 +613,32 @@ class Achievement {
   final IconData icon;
 
   double get completion => target == 0 ? 0 : (progress / target).clamp(0, 1);
+  bool get isUnlocked => target > 0 && progress >= target;
 }
 
 @immutable
 class PlayerStats {
   const PlayerStats({
     required this.gamesPlayed,
-    required this.gamesWon,
+    required this.casesSolved,
     required this.detectiveFinds,
     required this.hoursPlayed,
     required this.favoriteRole,
     required this.favoriteScenario,
+    required this.distinctRolesManaged,
+    required this.activeLobbies,
+    required this.friendCount,
   });
 
   final int gamesPlayed;
-  final int gamesWon;
+  final int casesSolved;
   final int detectiveFinds;
   final double hoursPlayed;
   final String favoriteRole;
   final String favoriteScenario;
+  final int distinctRolesManaged;
+  final int activeLobbies;
+  final int friendCount;
 }
 
 @immutable

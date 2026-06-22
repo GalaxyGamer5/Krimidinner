@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../localization/app_strings.dart';
 import '../models/mystery_models.dart';
 import '../state/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -17,6 +18,7 @@ class CaseDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
     final mysteryCase = ref.watch(mysteryCaseProvider(caseId));
     final state = ref.watch(mysteryControllerProvider);
 
@@ -29,11 +31,11 @@ class CaseDetailScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.error_outline_rounded, size: 48),
               const SizedBox(height: 12),
-              const Text('Dieser Fall wurde nicht gefunden.'),
+              Text(strings.caseNotFound),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => context.go('/cases'),
-                child: const Text('Zurueck zum Archiv'),
+                child: Text(strings.backToArchive),
               ),
             ],
           ),
@@ -64,18 +66,18 @@ class CaseDetailScreen extends ConsumerWidget {
                   runSpacing: 10,
                   children: [
                     InfoPill(
-                      label: mysteryCase.category.label,
+                      label: strings.categoryLabel(mysteryCase.category),
                       icon: Icons.style_rounded,
                       accent: Colors.white,
                     ),
                     InfoPill(
                       label:
-                          '${mysteryCase.playerMin}-${mysteryCase.playerMax} Spieler',
+                          strings.playersLabel(mysteryCase.playerMin, mysteryCase.playerMax),
                       icon: Icons.groups_rounded,
                       accent: Colors.white,
                     ),
                     InfoPill(
-                      label: '${mysteryCase.durationMinutes} Min',
+                      label: strings.minutesShort(mysteryCase.durationMinutes),
                       icon: Icons.schedule_rounded,
                       accent: Colors.white,
                     ),
@@ -98,23 +100,21 @@ class CaseDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: () {
-                    final code = ref
-                        .read(mysteryControllerProvider.notifier)
-                        .createLobby(
+                    final code = ref.read(mysteryControllerProvider.notifier).createLobby(
                           mysteryCase: mysteryCase,
                           hostName: state.localAlias,
                         );
                     context.go('/lobbies/room/$code');
                   },
                   icon: const Icon(Icons.add_circle_outline_rounded),
-                  label: const Text('Lobby erstellen'),
+                  label: Text(strings.createLobbyLabel),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
           SectionPanel(
-            title: 'Worum geht es?',
+            title: strings.caseOverviewTitle,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -129,9 +129,11 @@ class CaseDetailScreen extends ConsumerWidget {
                   children: [
                     _MetricBadge(
                       label:
-                          '${mysteryCase.playerMin}-${mysteryCase.playerMax} Spieler',
+                          strings.playersLabel(mysteryCase.playerMin, mysteryCase.playerMax),
                     ),
-                    _MetricBadge(label: '${mysteryCase.durationMinutes} Minuten'),
+                    _MetricBadge(
+                      label: strings.minutesLong(mysteryCase.durationMinutes),
+                    ),
                     _MetricBadge(label: mysteryCase.atmosphere),
                   ],
                 ),
@@ -163,7 +165,7 @@ class CaseDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           SectionPanel(
-            title: 'Figuren in dieser Runde',
+            title: strings.caseCharactersTitle,
             child: Column(
               children: mysteryCase.roles
                   .map((role) => _RolePreviewCard(role: role))
@@ -192,9 +194,7 @@ class _MetricBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontWeight: FontWeight.w700,
-        ),
+        style: const TextStyle(fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -219,15 +219,8 @@ class _RolePreviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 24,
-            backgroundColor: AppPalette.gold.withOpacity(0.18),
-            child: Text(
-              role.avatar,
-              style: const TextStyle(
-                color: AppPalette.gold,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            backgroundColor: AppPalette.gold.withOpacity(0.16),
+            child: Text(role.avatar),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -240,11 +233,6 @@ class _RolePreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(role.persona),
-                const SizedBox(height: 10),
-                InfoPill(
-                  label: _rolePresentationHint(role),
-                  icon: Icons.person_outline_rounded,
-                ),
               ],
             ),
           ),
@@ -252,44 +240,4 @@ class _RolePreviewCard extends StatelessWidget {
       ),
     );
   }
-}
-
-String _rolePresentationHint(MysteryRole role) {
-  final lowerName = role.name.toLowerCase();
-  const feminineMarkers = [
-    'isabel',
-    'nora',
-    'amara',
-    'sofia',
-    'nadia',
-    'baronin',
-    'mila',
-    'celeste',
-    'opal',
-    'iris',
-    'sera',
-    'vesper',
-  ];
-  const masculineMarkers = [
-    'lucien',
-    'pater',
-    'matthias',
-    'captain',
-    'elias',
-    'gabriel',
-    'leon',
-    'enzo',
-    'gideon',
-    'julian',
-    'theo',
-    'inspector',
-  ];
-
-  if (feminineMarkers.any(lowerName.contains)) {
-    return 'Eher weiblich lesbar';
-  }
-  if (masculineMarkers.any(lowerName.contains)) {
-    return 'Eher maennlich lesbar';
-  }
-  return 'Offen spielbar';
 }

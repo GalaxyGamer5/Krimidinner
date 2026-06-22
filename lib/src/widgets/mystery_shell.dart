@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../theme/app_theme.dart';
+import '../localization/app_strings.dart';
 import '../state/app_providers.dart';
+import '../theme/app_theme.dart';
 
 class MysteryShell extends ConsumerWidget {
   const MysteryShell({
@@ -17,22 +18,36 @@ class MysteryShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
-  static const List<_Destination> _destinations = [
-    _Destination(label: 'Salon', icon: Icons.home_rounded, path: '/hub'),
-    _Destination(
-        label: 'Fälle', icon: Icons.auto_stories_rounded, path: '/cases'),
-    _Destination(label: 'Lobbys', icon: Icons.groups_rounded, path: '/lobbies'),
-    _Destination(
-        label: 'Rollen', icon: Icons.person_search_rounded, path: '/roles'),
-    _Destination(label: 'Konto', icon: Icons.tune_rounded, path: '/account'),
-  ];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
     final state = ref.watch(mysteryControllerProvider);
     final hasActiveLobby = state.lobbies.isNotEmpty;
+    final destinations = [
+      _Destination(label: strings.navHome, icon: Icons.home_rounded, path: '/hub'),
+      _Destination(
+        label: strings.navCases,
+        icon: Icons.auto_stories_rounded,
+        path: '/cases',
+      ),
+      _Destination(
+        label: strings.navLobbies,
+        icon: Icons.groups_rounded,
+        path: '/lobbies',
+      ),
+      _Destination(
+        label: strings.navRoles,
+        icon: Icons.person_search_rounded,
+        path: '/roles',
+      ),
+      _Destination(
+        label: strings.navAccount,
+        icon: Icons.tune_rounded,
+        path: '/account',
+      ),
+    ];
 
-    final visibleDestinations = _destinations.where((dest) {
+    final visibleDestinations = destinations.where((dest) {
       if (!hasActiveLobby) {
         return dest.path == '/hub' || dest.path == '/account';
       }
@@ -42,18 +57,26 @@ class MysteryShell extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 1080;
-        
         final selectedIndex = visibleDestinations.indexWhere((dest) {
-          if (dest.path == '/hub' && location == '/hub') return true;
-          if (dest.path == '/cases' && location.startsWith('/cases')) return true;
-          if (dest.path == '/lobbies' && (location.startsWith('/lobbies') || location.startsWith('/invite'))) return true;
-          if (dest.path == '/roles' && location.startsWith('/roles')) return true;
-          if (dest.path == '/account' && location.startsWith('/account')) return true;
+          if (dest.path == '/hub' && location == '/hub') {
+            return true;
+          }
+          if (dest.path == '/cases' && location.startsWith('/cases')) {
+            return true;
+          }
+          if (dest.path == '/lobbies' &&
+              (location.startsWith('/lobbies') || location.startsWith('/invite'))) {
+            return true;
+          }
+          if (dest.path == '/roles' && location.startsWith('/roles')) {
+            return true;
+          }
+          if (dest.path == '/account' && location.startsWith('/account')) {
+            return true;
+          }
           return false;
         });
         final index = selectedIndex == -1 ? 0 : selectedIndex;
-
-        final title = _pageTitle();
 
         return Scaffold(
           backgroundColor: Colors.transparent,
@@ -66,8 +89,8 @@ class MysteryShell extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(24),
                     child: NavigationBar(
                       selectedIndex: index,
-                      onDestinationSelected: (idx) {
-                        context.go(visibleDestinations[idx].path);
+                      onDestinationSelected: (selected) {
+                        context.go(visibleDestinations[selected].path);
                       },
                       destinations: visibleDestinations
                           .map(
@@ -93,7 +116,7 @@ class MysteryShell extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      _ShellHeader(title: title),
+                      _ShellHeader(title: strings.pageTitle(location)),
                       const SizedBox(height: 18),
                       Expanded(
                         child: isWide
@@ -104,9 +127,7 @@ class MysteryShell extends ConsumerWidget {
                                     selectedIndex: index,
                                   ),
                                   const SizedBox(width: 20),
-                                  Expanded(
-                                    child: _ContentFrame(child: child),
-                                  ),
+                                  Expanded(child: _ContentFrame(child: child)),
                                 ],
                               )
                             : _ContentFrame(child: child),
@@ -120,31 +141,6 @@ class MysteryShell extends ConsumerWidget {
         );
       },
     );
-  }
-
-  String _pageTitle() {
-    if (location.startsWith('/cases/')) {
-      return 'Krimiakte';
-    }
-    if (location.startsWith('/cases')) {
-      return 'Krimi-Auswahl';
-    }
-    if (location.startsWith('/lobbies/room/')) {
-      return 'Live-Lobby';
-    }
-    if (location.startsWith('/invite/')) {
-      return 'Einladung';
-    }
-    if (location.startsWith('/lobbies')) {
-      return 'Lobby-System';
-    }
-    if (location.startsWith('/roles')) {
-      return 'Meine Rollen';
-    }
-    if (location.startsWith('/account')) {
-      return 'Freunde, Erfolge und Einstellungen';
-    }
-    return 'MYSTERY NIGHT';
   }
 }
 
@@ -256,10 +252,7 @@ class _ShellHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  title,
-                  style: textTheme.bodyMedium,
-                ),
+                Text(title, style: textTheme.bodyMedium),
               ],
             ),
           ),
@@ -501,8 +494,7 @@ class TwoColumnLayout extends StatelessWidget {
               flex: 3,
               child: Column(
                 children: [
-                  ...primary
-                      .expand((item) => [item, const SizedBox(height: 16)]),
+                  ...primary.expand((item) => [item, const SizedBox(height: 16)]),
                 ]..removeLast(),
               ),
             ),
@@ -511,8 +503,7 @@ class TwoColumnLayout extends StatelessWidget {
               flex: 2,
               child: Column(
                 children: [
-                  ...secondary
-                      .expand((item) => [item, const SizedBox(height: 16)]),
+                  ...secondary.expand((item) => [item, const SizedBox(height: 16)]),
                 ]..removeLast(),
               ),
             ),

@@ -22,7 +22,13 @@ final mysteryCatalogProvider = Provider<List<MysteryCase>>((ref) {
 
 final mysteryCaseProvider =
     Provider.family<MysteryCase?, String>((ref, caseId) {
-  return findMysteryCaseById(caseId);
+  final catalog = ref.watch(mysteryCatalogProvider);
+  for (final mysteryCase in catalog) {
+    if (mysteryCase.id == caseId) {
+      return mysteryCase;
+    }
+  }
+  return null;
 });
 
 final mysteryControllerProvider =
@@ -67,26 +73,36 @@ final isLoggedInProvider = Provider<bool>((ref) {
 
 final playerStatsProvider = Provider<PlayerStats>((ref) {
   final state = ref.watch(mysteryControllerProvider);
-  final completedGames =
-      state.lobbies.where((lobby) => lobby.isCompleted).length;
+  final catalog = ref.watch(mysteryCatalogProvider);
+  final completedGames = state.lobbies.where((lobby) => lobby.isCompleted).length;
+  final startedGames = state.lobbies.where((lobby) => lobby.hasStarted).length;
   final revealedHints = state.lobbies.fold<int>(
     0,
     (total, lobby) => total + lobby.revealedHintIds.length,
   );
-  final favoriteRole = state.roleArchive.isNotEmpty
-      ? state.roleArchive.last.characterName
-      : 'Gastgeber';
-  final favoriteScenario = state.roleArchive.isNotEmpty
-      ? state.roleArchive.last.caseTitle
-      : 'Villa No. 7';
+  final distinctRoles = state.roleArchive
+      .map((entry) => '${entry.caseTitle}:${entry.characterName}')
+      .toSet()
+      .length;
+  final favoriteRole = _favoriteValue(
+    state.roleArchive.map((entry) => entry.characterName),
+  );
+  final favoriteScenario = _favoriteValue(
+    state.roleArchive.map((entry) => entry.caseTitle),
+  );
+  final fallbackCaseTitle =
+      catalog.isEmpty ? 'Noch kein Fall' : catalog.first.title;
 
   return PlayerStats(
-    gamesPlayed: 3 + completedGames,
-    gamesWon: 2 + max(0, completedGames - 1),
-    detectiveFinds: 4 + revealedHints,
-    hoursPlayed: 6.5 + (state.lobbies.length * 0.8),
-    favoriteRole: favoriteRole,
-    favoriteScenario: favoriteScenario,
+    gamesPlayed: startedGames,
+    casesSolved: completedGames,
+    detectiveFinds: revealedHints,
+    hoursPlayed: _estimatedHoursPlayed(state, catalog),
+    favoriteRole: favoriteRole ?? 'Noch keine Rolle',
+    favoriteScenario: favoriteScenario ?? fallbackCaseTitle,
+    distinctRolesManaged: distinctRoles,
+    activeLobbies: state.lobbies.where((lobby) => !lobby.isCompleted).length,
+    friendCount: state.friends.length,
   );
 });
 
@@ -102,32 +118,44 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
 
   return [
     Achievement(
+      id: 'case_master',
       title: 'Meisterdetektiv',
       description: 'Schliesse mehrere Faelle erfolgreich ab.',
-      progress: stats.gamesPlayed.toDouble(),
-      target: 8,
+      progress: stats.casesSolved.toDouble(),
+      target: 3,
       icon: Icons.search_rounded,
     ),
     Achievement(
+      id: 'role_archive',
       title: 'Unauffaelliger Taeter',
       description: 'Verwalte mehrere Rollen, ohne deine Spuren preiszugeben.',
-      progress: state.roleArchive.length.toDouble(),
-      target: 6,
+      progress: stats.distinctRolesManaged.toDouble(),
+      target: 4,
       icon: Icons.visibility_off_rounded,
     ),
     Achievement(
+      id: 'clue_hunter',
       title: 'Hinweisjaeger',
       description: 'Schalte Hinweise über mehrere Partien hinweg frei.',
       progress: totalHints.toDouble(),
-      target: 14,
+      target: 10,
       icon: Icons.local_police_rounded,
     ),
     Achievement(
+      id: 'friend_network',
       title: 'Netzwerk im Nebel',
-      description: 'Halte parallel mehrere Lobbys aktiv.',
-      progress: activeLobbies.toDouble(),
+      description: 'Baue dir ein eigenes Ermittlernetzwerk auf.',
+      progress: stats.friendCount.toDouble(),
       target: 3,
-      icon: Icons.groups_rounded,
+      icon: Icons.group_add_rounded,
+    ),
+    Achievement(
+      id: 'multi_case_host',
+      title: 'Doppelte Buchfuehrung',
+      description: 'Halte mehrere aktive Lobbys parallel im Blick.',
+      progress: activeLobbies.toDouble(),
+      target: 2,
+      icon: Icons.dashboard_customize_rounded,
     ),
   ];
 });
@@ -229,6 +257,87 @@ class MysteryController extends Notifier<MysteryState> {
       return;
     }
     _updateState(state.copyWith(localAlias: trimmed));
+  }
+
+  String? addFriend({
+    required String name,
+    String? favoriteScenario,
+    String? favoriteRole,
+    String? note,
+  }) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      return 'Bitte gib einen Namen ein.';
+    }
+
+    final duplicate = state.friends.any(
+      (friend) => friend.name.toLowerCase() == trimmedName.toLowerCase(),
+    );
+    if (duplicate) {
+      return 'Dieser Freund ist bereits gespeichert.';
+    }
+
+    final friend = FriendProfile(
+      id: _uuid.v4(),
+      name: trimmedName,
+      createdAt: DateTime.now(),
+      favoriteScenario: _normalizeOptionalText(favoriteScenario),
+      favoriteRole: _normalizeOptionalText(favoriteRole),
+      note: note?.trim() ?? '',
+    );
+
+    _updateState(state.copyWith(friends: [friend, ...state.friends]));
+    return null;
+  }
+
+  String? updateFriend({
+    required String friendId,
+    required String name,
+    String? favoriteScenario,
+    String? favoriteRole,
+    String? note,
+  }) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      return 'Bitte gib einen Namen ein.';
+    }
+
+    final friendIndex = state.friends.indexWhere((friend) => friend.id == friendId);
+    if (friendIndex == -1) {
+      return 'Freund nicht gefunden.';
+    }
+
+    final duplicate = state.friends.any(
+      (friend) =>
+          friend.id != friendId &&
+          friend.name.toLowerCase() == trimmedName.toLowerCase(),
+    );
+    if (duplicate) {
+      return 'Dieser Freund ist bereits gespeichert.';
+    }
+
+    final updatedFriends = [...state.friends];
+    updatedFriends[friendIndex] = updatedFriends[friendIndex].copyWith(
+      name: trimmedName,
+      favoriteScenario: _normalizeOptionalText(favoriteScenario),
+      favoriteRole: _normalizeOptionalText(favoriteRole),
+      note: note?.trim() ?? '',
+      clearFavoriteScenario: _normalizeOptionalText(favoriteScenario) == null,
+      clearFavoriteRole: _normalizeOptionalText(favoriteRole) == null,
+    );
+
+    _updateState(state.copyWith(friends: updatedFriends));
+    return null;
+  }
+
+  void removeFriend(String friendId) {
+    final updatedFriends = state.friends
+        .where((friend) => friend.id != friendId)
+        .toList();
+    if (updatedFriends.length == state.friends.length) {
+      return;
+    }
+    _updateState(state.copyWith(friends: updatedFriends));
   }
 
   String createLobby({
@@ -1327,38 +1436,12 @@ class MysteryController extends Notifier<MysteryState> {
   }
 
   MysteryState _defaultState() {
-    return MysteryState(
+    return const MysteryState(
       localAlias: 'Detective Nova',
-      lobbies: const [],
-      roleArchive: const [],
-      friends: _defaultFriends(),
+      lobbies: [],
+      roleArchive: [],
+      friends: [],
     );
-  }
-
-  List<FriendProfile> _defaultFriends() {
-    return const [
-      FriendProfile(
-        name: 'Lea Stern',
-        favoriteScenario: 'Villa No. 7',
-        favoriteRole: 'Journalistin',
-        lastSeen: 'Heute, 19:10',
-        isOnline: true,
-      ),
-      FriendProfile(
-        name: 'Jonah Black',
-        favoriteScenario: 'Aurelia Express',
-        favoriteRole: 'Schaffner',
-        lastSeen: 'Gestern, 22:40',
-        isOnline: false,
-      ),
-      FriendProfile(
-        name: 'Sofia Vale',
-        favoriteScenario: 'Lantern Society',
-        favoriteRole: 'Archivarin',
-        lastSeen: 'Heute, 16:05',
-        isOnline: true,
-      ),
-    ];
   }
 
   MysteryState? _restoreState(String? rawState) {
@@ -1380,12 +1463,16 @@ class MysteryController extends Notifier<MysteryState> {
           .map(_deserializeRoleArchiveEntry)
           .whereType<RoleArchiveEntry>()
           .toList();
+      final friends = (decoded['friends'] as List<dynamic>? ?? const [])
+          .map(_deserializeFriendProfile)
+          .whereType<FriendProfile>()
+          .toList();
 
       return MysteryState(
         localAlias: decoded['localAlias'] as String? ?? 'Detective Nova',
         lobbies: lobbies,
         roleArchive: roleArchive,
-        friends: _defaultFriends(),
+        friends: friends,
       );
     } catch (_) {
       return null;
@@ -1398,6 +1485,7 @@ class MysteryController extends Notifier<MysteryState> {
       'lobbies': mysteryState.lobbies.map(_serializeLobby).toList(),
       'roleArchive':
           mysteryState.roleArchive.map(_serializeRoleArchiveEntry).toList(),
+      'friends': mysteryState.friends.map(_serializeFriendProfile).toList(),
     };
   }
 
@@ -1497,6 +1585,17 @@ class MysteryController extends Notifier<MysteryState> {
       'signature': entry.signature,
       'goal': entry.goal,
       'unlockedAt': entry.unlockedAt.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _serializeFriendProfile(FriendProfile friend) {
+    return {
+      'id': friend.id,
+      'name': friend.name,
+      'createdAt': friend.createdAt.toIso8601String(),
+      'favoriteScenario': friend.favoriteScenario,
+      'favoriteRole': friend.favoriteRole,
+      'note': friend.note,
     };
   }
 
@@ -1780,6 +1879,89 @@ class MysteryController extends Notifier<MysteryState> {
       unlockedAt: unlockedAt,
     );
   }
+
+  FriendProfile? _deserializeFriendProfile(dynamic rawEntry) {
+    if (rawEntry is! Map) {
+      return null;
+    }
+
+    final id = rawEntry['id'];
+    final name = rawEntry['name'];
+    final createdAt = DateTime.tryParse(rawEntry['createdAt'] as String? ?? '');
+    if (id is! String || name is! String || createdAt == null) {
+      return null;
+    }
+
+    return FriendProfile(
+      id: id,
+      name: name,
+      createdAt: createdAt,
+      favoriteScenario: rawEntry['favoriteScenario'] as String?,
+      favoriteRole: rawEntry['favoriteRole'] as String?,
+      note: rawEntry['note'] as String? ?? '',
+    );
+  }
+}
+
+String? _favoriteValue(Iterable<String> values) {
+  final counts = <String, int>{};
+  for (final value in values) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      continue;
+    }
+    counts.update(trimmed, (current) => current + 1, ifAbsent: () => 1);
+  }
+
+  String? winner;
+  var bestCount = 0;
+  for (final entry in counts.entries) {
+    if (entry.value > bestCount) {
+      winner = entry.key;
+      bestCount = entry.value;
+    }
+  }
+  return winner;
+}
+
+double _estimatedHoursPlayed(
+  MysteryState state,
+  List<MysteryCase> catalog,
+) {
+  double totalMinutes = 0;
+  for (final lobby in state.lobbies) {
+    final mysteryCase = catalog.where((entry) => entry.id == lobby.caseId).firstOrNull;
+    if (mysteryCase == null || !lobby.hasStarted) {
+      continue;
+    }
+
+    if (lobby.isCompleted) {
+      totalMinutes += mysteryCase.phases.fold<double>(
+        0,
+        (value, phase) => value + phase.durationMinutes,
+      );
+      continue;
+    }
+
+    final visiblePhaseCount = (lobby.phaseIndex + 1).clamp(0, mysteryCase.phases.length);
+    final phaseMinutes = mysteryCase.phases
+        .take(visiblePhaseCount)
+        .fold<double>(0, (value, phase) => value + phase.durationMinutes);
+    totalMinutes += phaseMinutes;
+  }
+
+  if (totalMinutes == 0) {
+    return 0;
+  }
+  return totalMinutes / 60;
+}
+
+String? _normalizeOptionalText(String? value) {
+  final trimmed = value?.trim();
+  if (trimmed == null || trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed;
 }
 
 extension _IterableFirstOrNull<T> on Iterable<T> {
