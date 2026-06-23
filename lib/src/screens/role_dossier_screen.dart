@@ -35,7 +35,8 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
 
   Future<void> _loadNotes() async {
     final prefs = await SharedPreferences.getInstance();
-    final notes = prefs.getString('notes_${widget.code}_${widget.roleId}') ?? '';
+    final notes =
+        prefs.getString('notes_${widget.code}_${widget.roleId}') ?? '';
     if (mounted) {
       _notesController.text = notes;
       setState(() => _isLoading = false);
@@ -44,7 +45,8 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
 
   Future<void> _saveNotes() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('notes_${widget.code}_${widget.roleId}', _notesController.text);
+    await prefs.setString(
+        'notes_${widget.code}_${widget.roleId}', _notesController.text);
   }
 
   @override
@@ -59,7 +61,8 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
     final strings = ref.watch(appStringsProvider);
     final state = ref.watch(mysteryControllerProvider);
     final lobby = state.lobbies.where((l) => l.code == widget.code).firstOrNull;
-    final mysteryCase = lobby != null ? ref.watch(mysteryCaseProvider(lobby.caseId)) : null;
+    final mysteryCase =
+        lobby != null ? ref.watch(mysteryCaseProvider(lobby.caseId)) : null;
 
     if (lobby == null || mysteryCase == null) {
       return Scaffold(
@@ -84,7 +87,8 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
       );
     }
 
-    final role = mysteryCase.roles.where((r) => r.id == widget.roleId).firstOrNull;
+    final role =
+        mysteryCase.roles.where((r) => r.id == widget.roleId).firstOrNull;
     if (role == null) {
       return Scaffold(
         appBar: AppBar(
@@ -139,7 +143,8 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
                         spacing: 12,
                         runSpacing: 12,
                         children: [
-                          InfoPill(label: role.name, icon: Icons.person_pin_rounded),
+                          InfoPill(
+                              label: role.name, icon: Icons.person_pin_rounded),
                           InfoPill(
                             label: role.outfit.palette.join(' / '),
                             icon: Icons.palette_outlined,
@@ -240,10 +245,13 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
                             children: [
                               const Padding(
                                 padding: EdgeInsets.only(top: 6),
-                                child: Icon(Icons.circle, size: 8, color: AppPalette.gold),
+                                child: Icon(Icons.circle,
+                                    size: 8, color: AppPalette.gold),
                               ),
                               const SizedBox(width: 16),
-                              Expanded(child: Text(clue, style: textTheme.bodyLarge)),
+                              Expanded(
+                                  child:
+                                      Text(clue, style: textTheme.bodyLarge)),
                             ],
                           ),
                         ),
@@ -324,7 +332,8 @@ class _RoleDossierScreenState extends ConsumerState<RoleDossierScreen> {
                           fillColor: Colors.white.withOpacity(0.03),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
-                            borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+                            borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.1)),
                           ),
                         ),
                       ),

@@ -28,11 +28,14 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
   @override
   void initState() {
     super.initState();
-    final lobby = widget.lobbyCode.isEmpty ? null : ref.read(lobbyProvider(widget.lobbyCode));
+    final lobby = widget.lobbyCode.isEmpty
+        ? null
+        : ref.read(lobbyProvider(widget.lobbyCode));
     final invitation = lobby?.invitations
         .where((entry) => entry.id == widget.invitationId)
         .firstOrNull;
-    final alias = invitation?.recipientName ?? ref.read(mysteryControllerProvider).localAlias;
+    final alias = invitation?.recipientName ??
+        ref.read(mysteryControllerProvider).localAlias;
     _nameController = TextEditingController(text: alias);
   }
 
@@ -46,9 +49,12 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
   Widget build(BuildContext context) {
     final strings = ref.watch(appStringsProvider);
     final state = ref.watch(mysteryControllerProvider);
-    final lobby = widget.lobbyCode.isEmpty ? null : ref.watch(lobbyProvider(widget.lobbyCode));
+    final lobby = widget.lobbyCode.isEmpty
+        ? null
+        : ref.watch(lobbyProvider(widget.lobbyCode));
     final invitation = _invitationForLobby(lobby, widget.invitationId);
-    final mysteryCase = lobby == null ? null : ref.watch(mysteryCaseProvider(lobby.caseId));
+    final mysteryCase =
+        lobby == null ? null : ref.watch(mysteryCaseProvider(lobby.caseId));
 
     if (lobby == null || invitation == null || mysteryCase == null) {
       return SingleChildScrollView(
@@ -80,7 +86,9 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
               const SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: () => context.go(
-                  widget.lobbyCode.isEmpty ? '/lobbies' : '/lobbies?invite=${widget.lobbyCode}',
+                  widget.lobbyCode.isEmpty
+                      ? '/lobbies'
+                      : '/lobbies?invite=${widget.lobbyCode}',
                 ),
                 icon: const Icon(Icons.groups_rounded),
                 label: Text(
@@ -107,12 +115,14 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
     final acceptedByCurrentAlias = acceptedPlayer != null &&
         acceptedPlayer.name.toLowerCase() == state.localAlias.toLowerCase();
     final canRejoin = acceptedPlayer != null && acceptedPlayer.canRejoin;
-    final showWaitingRoom = invitation.status == LobbyInvitationStatus.accepted &&
-        acceptedByCurrentAlias &&
-        !canRejoin;
-    final showRejoinPanel = invitation.status == LobbyInvitationStatus.accepted &&
-        acceptedByCurrentAlias &&
-        canRejoin;
+    final showWaitingRoom =
+        invitation.status == LobbyInvitationStatus.accepted &&
+            acceptedByCurrentAlias &&
+            !canRejoin;
+    final showRejoinPanel =
+        invitation.status == LobbyInvitationStatus.accepted &&
+            acceptedByCurrentAlias &&
+            canRejoin;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -200,7 +210,9 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                       ),
                       const SizedBox(height: 18),
                       FilledButton.icon(
-                        onPressed: lobby.hasStarted ? () => context.go('/lobbies/room/${lobby.code}') : null,
+                        onPressed: lobby.hasStarted
+                            ? () => context.go('/lobbies/room/${lobby.code}')
+                            : null,
                         icon: const Icon(Icons.meeting_room_rounded),
                         label: Text(
                           lobby.hasStarted
@@ -236,7 +248,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                     fr: 'Voici la scene a laquelle tu as ete invite.',
                     es: 'Esta es la escena a la que has sido invitado.',
                   ),
-                  child: _CaseOverview(strings: strings, mysteryCase: mysteryCase),
+                  child:
+                      _CaseOverview(strings: strings, mysteryCase: mysteryCase),
                 ),
                 SectionPanel(
                   title: strings.tr(
@@ -256,7 +269,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                           fr: 'Joueurs',
                           es: 'Jugadores',
                         ),
-                        value: '${lobby.players.length}/${mysteryCase.roles.length}',
+                        value:
+                            '${lobby.players.length}/${mysteryCase.roles.length}',
                         icon: Icons.groups_rounded,
                       ),
                       MetricTile(
@@ -267,8 +281,16 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                           es: 'Estado',
                         ),
                         value: lobby.hasStarted
-                            ? strings.tr(de: 'Gestartet', en: 'Started', fr: 'Commence', es: 'Iniciado')
-                            : strings.tr(de: 'Bereit', en: 'Ready', fr: 'Pret', es: 'Listo'),
+                            ? strings.tr(
+                                de: 'Gestartet',
+                                en: 'Started',
+                                fr: 'Commence',
+                                es: 'Iniciado')
+                            : strings.tr(
+                                de: 'Bereit',
+                                en: 'Ready',
+                                fr: 'Pret',
+                                es: 'Listo'),
                         icon: lobby.hasStarted
                             ? Icons.play_circle_outline_rounded
                             : Icons.hourglass_bottom_rounded,
@@ -366,7 +388,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                     fr: 'Voici la scene dans laquelle tu peux revenir.',
                     es: 'Esta es la escena a la que puedes volver.',
                   ),
-                  child: _CaseOverview(strings: strings, mysteryCase: mysteryCase),
+                  child:
+                      _CaseOverview(strings: strings, mysteryCase: mysteryCase),
                 ),
               ],
             )
@@ -404,9 +427,10 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                       ),
                       const SizedBox(height: 18),
                       FilledButton.icon(
-                        onPressed: invitation.status == LobbyInvitationStatus.pending
-                            ? () => _acceptInvitation(lobby)
-                            : null,
+                        onPressed:
+                            invitation.status == LobbyInvitationStatus.pending
+                                ? () => _acceptInvitation(lobby)
+                                : null,
                         icon: const Icon(Icons.check_circle_outline_rounded),
                         label: Text(
                           strings.tr(
@@ -429,7 +453,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                           ),
                         ),
                       ],
-                      if (invitation.status == LobbyInvitationStatus.revoked) ...[
+                      if (invitation.status ==
+                          LobbyInvitationStatus.revoked) ...[
                         const SizedBox(height: 14),
                         Text(
                           strings.tr(
@@ -495,7 +520,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                     fr: 'Le maitre du jeu tinvite dans cette scene.',
                     es: 'El anfitrion te invita a esta escena.',
                   ),
-                  child: _CaseOverview(strings: strings, mysteryCase: mysteryCase),
+                  child:
+                      _CaseOverview(strings: strings, mysteryCase: mysteryCase),
                 ),
                 SectionPanel(
                   title: strings.tr(
@@ -515,7 +541,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                           fr: 'Duree',
                           es: 'Duracion',
                         ),
-                        value: strings.minutesShort(mysteryCase.durationMinutes),
+                        value:
+                            strings.minutesShort(mysteryCase.durationMinutes),
                         icon: Icons.schedule_rounded,
                       ),
                       MetricTile(
@@ -525,7 +552,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
                           fr: 'Joueurs',
                           es: 'Jugadores',
                         ),
-                        value: strings.playersLabel(mysteryCase.playerMin, mysteryCase.playerMax),
+                        value: strings.playersLabel(
+                            mysteryCase.playerMin, mysteryCase.playerMax),
                         icon: Icons.person_add_alt_1_rounded,
                       ),
                     ],
@@ -584,7 +612,8 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   LobbyInvitation? _invitationForLobby(
@@ -594,7 +623,9 @@ class _InvitationScreenState extends ConsumerState<InvitationScreen> {
     if (lobby == null) {
       return null;
     }
-    return lobby.invitations.where((entry) => entry.id == invitationId).firstOrNull;
+    return lobby.invitations
+        .where((entry) => entry.id == invitationId)
+        .firstOrNull;
   }
 
   MysteryRole? _roleForInvitation(

@@ -615,6 +615,7 @@ class AppStrings {
       es: 'Roles archivados: $roles · Lobbies activos: $activeLobbies · Tiempo de juego: $hours h',
     );
   }
+
   String get achievementUnlocked => _pick(
         de: 'Freigeschaltet',
         en: 'Unlocked',
@@ -643,6 +644,7 @@ class AppStrings {
         return _pick(de: 'System', en: 'System', fr: 'Systeme', es: 'Sistema');
     }
   }
+
   String get languageLabel => _pick(
         de: 'Sprache',
         en: 'Language',
@@ -661,6 +663,7 @@ class AppStrings {
         return 'Espanol';
     }
   }
+
   String musicVolumeLabel(int value) => _pick(
         de: 'Musiklautstaerke ($value%)',
         en: 'Music volume ($value%)',
@@ -701,50 +704,88 @@ class AppStrings {
   String categoryLabel(MysteryCategory category) {
     switch (category) {
       case MysteryCategory.halloween:
-        return _pick(de: 'Halloween', en: 'Halloween', fr: 'Halloween', es: 'Halloween');
+        return _pick(
+            de: 'Halloween', en: 'Halloween', fr: 'Halloween', es: 'Halloween');
       case MysteryCategory.christmas:
-        return _pick(de: 'Weihnachten', en: 'Christmas', fr: 'Noel', es: 'Navidad');
+        return _pick(
+            de: 'Weihnachten', en: 'Christmas', fr: 'Noel', es: 'Navidad');
       case MysteryCategory.newYearsEve:
-        return _pick(de: 'Silvester', en: 'New Year', fr: 'Nouvel An', es: 'Ano nuevo');
+        return _pick(
+            de: 'Silvester', en: 'New Year', fr: 'Nouvel An', es: 'Ano nuevo');
       case MysteryCategory.mafia:
         return _pick(de: 'Mafia', en: 'Mafia', fr: 'Mafia', es: 'Mafia');
       case MysteryCategory.luxuryVilla:
-        return _pick(de: 'Luxusvilla', en: 'Luxury villa', fr: 'Villa de luxe', es: 'Villa de lujo');
+        return _pick(
+            de: 'Luxusvilla',
+            en: 'Luxury villa',
+            fr: 'Villa de luxe',
+            es: 'Villa de lujo');
       case MysteryCategory.orientExpress:
-        return _pick(de: 'Orient Express', en: 'Orient Express', fr: 'Orient Express', es: 'Orient Express');
+        return _pick(
+            de: 'Orient Express',
+            en: 'Orient Express',
+            fr: 'Orient Express',
+            es: 'Orient Express');
       case MysteryCategory.medieval:
-        return _pick(de: 'Mittelalter', en: 'Medieval', fr: 'Medieval', es: 'Medieval');
+        return _pick(
+            de: 'Mittelalter', en: 'Medieval', fr: 'Medieval', es: 'Medieval');
       case MysteryCategory.pirates:
-        return _pick(de: 'Piraten', en: 'Pirates', fr: 'Pirates', es: 'Piratas');
+        return _pick(
+            de: 'Piraten', en: 'Pirates', fr: 'Pirates', es: 'Piratas');
       case MysteryCategory.casino:
         return _pick(de: 'Casino', en: 'Casino', fr: 'Casino', es: 'Casino');
       case MysteryCategory.twenties:
-        return _pick(de: '1920er Jahre', en: 'Roaring Twenties', fr: 'Annees 1920', es: 'Anos veinte');
+        return _pick(
+            de: '1920er Jahre',
+            en: 'Roaring Twenties',
+            fr: 'Annees 1920',
+            es: 'Anos veinte');
       case MysteryCategory.vampires:
-        return _pick(de: 'Vampire', en: 'Vampires', fr: 'Vampires', es: 'Vampiros');
+        return _pick(
+            de: 'Vampire', en: 'Vampires', fr: 'Vampires', es: 'Vampiros');
       case MysteryCategory.wizards:
-        return _pick(de: 'Zauberer', en: 'Wizards', fr: 'Sorciers', es: 'Magos');
+        return _pick(
+            de: 'Zauberer', en: 'Wizards', fr: 'Sorciers', es: 'Magos');
       case MysteryCategory.detectiveSchool:
-        return _pick(de: 'Detektivschule', en: 'Detective school', fr: 'Ecole de detective', es: 'Escuela de detectives');
+        return _pick(
+            de: 'Detektivschule',
+            en: 'Detective school',
+            fr: 'Ecole de detective',
+            es: 'Escuela de detectives');
       case MysteryCategory.agents:
         return _pick(de: 'Agenten', en: 'Agents', fr: 'Agents', es: 'Agentes');
       case MysteryCategory.zombie:
-        return _pick(de: 'Zombie-Apokalypse', en: 'Zombie apocalypse', fr: 'Apocalypse zombie', es: 'Apocalipsis zombi');
+        return _pick(
+            de: 'Zombie-Apokalypse',
+            en: 'Zombie apocalypse',
+            fr: 'Apocalypse zombie',
+            es: 'Apocalipsis zombi');
       case MysteryCategory.custom:
-        return _pick(de: 'Eigenes Krimi-Dinner', en: 'Custom mystery dinner', fr: 'Mystere personnalise', es: 'Misterio personalizado');
+        return _pick(
+            de: 'Eigenes Krimi-Dinner',
+            en: 'Custom mystery dinner',
+            fr: 'Mystere personnalise',
+            es: 'Misterio personalizado');
     }
   }
 
   String difficultyLabel(CaseDifficulty difficulty) {
     switch (difficulty) {
       case CaseDifficulty.relaxed:
-        return _pick(de: 'Entspannt', en: 'Relaxed', fr: 'Detendu', es: 'Relajado');
+        return _pick(
+            de: 'Entspannt', en: 'Relaxed', fr: 'Detendu', es: 'Relajado');
       case CaseDifficulty.medium:
-        return _pick(de: 'Knifflig', en: 'Tricky', fr: 'Subtil', es: 'Desafiante');
+        return _pick(
+            de: 'Knifflig', en: 'Tricky', fr: 'Subtil', es: 'Desafiante');
       case CaseDifficulty.sharp:
-        return _pick(de: 'Anspruchsvoll', en: 'Demanding', fr: 'Exigeant', es: 'Exigente');
+        return _pick(
+            de: 'Anspruchsvoll',
+            en: 'Demanding',
+            fr: 'Exigeant',
+            es: 'Exigente');
       case CaseDifficulty.mastermind:
-        return _pick(de: 'Meisterhaft', en: 'Mastermind', fr: 'Expert', es: 'Maestro');
+        return _pick(
+            de: 'Meisterhaft', en: 'Mastermind', fr: 'Expert', es: 'Maestro');
     }
   }
 }

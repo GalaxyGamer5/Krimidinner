@@ -190,6 +190,40 @@ class HintCard {
 }
 
 @immutable
+class HostChecklistItem {
+  const HostChecklistItem({
+    required this.id,
+    required this.title,
+    required this.isCompleted,
+    this.description,
+    this.isAuto = false,
+  });
+
+  final String id;
+  final String title;
+  final String? description;
+  final bool isCompleted;
+  final bool isAuto;
+
+  HostChecklistItem copyWith({
+    String? id,
+    String? title,
+    String? description,
+    bool? isCompleted,
+    bool? isAuto,
+    bool clearDescription = false,
+  }) {
+    return HostChecklistItem(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: clearDescription ? null : description ?? this.description,
+      isCompleted: isCompleted ?? this.isCompleted,
+      isAuto: isAuto ?? this.isAuto,
+    );
+  }
+}
+
+@immutable
 class GamePhase {
   const GamePhase({
     required this.id,
@@ -468,6 +502,7 @@ class LobbySession {
     required this.evidences,
     required this.votes,
     required this.revealedHintIds,
+    required this.hostChecklist,
     required this.phaseIndex,
     required this.hasStarted,
     required this.isCompleted,
@@ -486,6 +521,7 @@ class LobbySession {
   final List<GameEvidence> evidences;
   final List<SuspectVote> votes;
   final List<String> revealedHintIds;
+  final List<HostChecklistItem> hostChecklist;
   final int phaseIndex;
   final bool hasStarted;
   final bool isCompleted;
@@ -504,6 +540,7 @@ class LobbySession {
     List<GameEvidence>? evidences,
     List<SuspectVote>? votes,
     List<String>? revealedHintIds,
+    List<HostChecklistItem>? hostChecklist,
     int? phaseIndex,
     bool? hasStarted,
     bool? isCompleted,
@@ -523,6 +560,7 @@ class LobbySession {
       evidences: evidences ?? this.evidences,
       votes: votes ?? this.votes,
       revealedHintIds: revealedHintIds ?? this.revealedHintIds,
+      hostChecklist: hostChecklist ?? this.hostChecklist,
       phaseIndex: phaseIndex ?? this.phaseIndex,
       hasStarted: hasStarted ?? this.hasStarted,
       isCompleted: isCompleted ?? this.isCompleted,
@@ -585,8 +623,9 @@ class FriendProfile {
       id: id ?? this.id,
       name: name ?? this.name,
       createdAt: createdAt ?? this.createdAt,
-      favoriteScenario:
-          clearFavoriteScenario ? null : favoriteScenario ?? this.favoriteScenario,
+      favoriteScenario: clearFavoriteScenario
+          ? null
+          : favoriteScenario ?? this.favoriteScenario,
       favoriteRole:
           clearFavoriteRole ? null : favoriteRole ?? this.favoriteRole,
       note: note ?? this.note,

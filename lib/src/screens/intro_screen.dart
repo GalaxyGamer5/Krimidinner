@@ -19,7 +19,8 @@ class IntroScreen extends ConsumerWidget {
       body: Stack(
         children: [
           Container(
-            decoration: BoxDecoration(gradient: MysteryDecor.background(isDark)),
+            decoration:
+                BoxDecoration(gradient: MysteryDecor.background(isDark)),
           ),
           Positioned(
             left: -30,

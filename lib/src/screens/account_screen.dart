@@ -172,9 +172,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
   }
 
   List<_FriendSuggestion> _buildFriendSuggestions(MysteryState state) {
-    final existingNames = state.friends
-        .map((friend) => friend.name.toLowerCase())
-        .toSet();
+    final existingNames =
+        state.friends.map((friend) => friend.name.toLowerCase()).toSet();
     final suggestions = <_FriendSuggestion>[];
     final addedNames = <String>{};
 
@@ -240,9 +239,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     }
 
     _showFeedback(
-      friend == null
-          ? strings.friendSaved
-          : strings.friendUpdated,
+      friend == null ? strings.friendSaved : strings.friendUpdated,
     );
   }
 
@@ -292,7 +289,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     if (!mounted) {
       return;
     }
-    final notificationsEnabled = ref.read(appSettingsProvider).notificationsEnabled;
+    final notificationsEnabled =
+        ref.read(appSettingsProvider).notificationsEnabled;
     if (!notificationsEnabled) {
       return;
     }
@@ -375,13 +373,16 @@ class _StatsSummary extends StatelessWidget {
             spacing: 12,
             runSpacing: 12,
             children: [
-              MetricTile(label: strings.startedLabel, value: '${stats.gamesPlayed}'),
+              MetricTile(
+                  label: strings.startedLabel, value: '${stats.gamesPlayed}'),
               MetricTile(
                 label: strings.completedLabel,
                 value: '${stats.casesSolved}',
               ),
-              MetricTile(label: strings.cluesLabel, value: '${stats.detectiveFinds}'),
-              MetricTile(label: strings.friendsLabel, value: '${stats.friendCount}'),
+              MetricTile(
+                  label: strings.cluesLabel, value: '${stats.detectiveFinds}'),
+              MetricTile(
+                  label: strings.friendsLabel, value: '${stats.friendCount}'),
             ],
           ),
           const SizedBox(height: 16),
@@ -462,8 +463,9 @@ class _EmptyFriendsState extends StatelessWidget {
               runSpacing: 8,
               children: suggestions.take(3).map((suggestion) {
                 final role = suggestion.favoriteRole;
-                final label =
-                    role == null || role.isEmpty ? suggestion.name : '${suggestion.name} · $role';
+                final label = role == null || role.isEmpty
+                    ? suggestion.name
+                    : '${suggestion.name} · $role';
                 return ActionChip(
                   onPressed: onAddFriend,
                   label: Text(label),
@@ -499,7 +501,8 @@ class _FriendCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtitleParts = <String>[];
-    if (friend.favoriteScenario != null && friend.favoriteScenario!.isNotEmpty) {
+    if (friend.favoriteScenario != null &&
+        friend.favoriteScenario!.isNotEmpty) {
       subtitleParts.add(friend.favoriteScenario!);
     }
     if (friend.favoriteRole != null && friend.favoriteRole!.isNotEmpty) {
@@ -608,7 +611,9 @@ class _AchievementCard extends StatelessWidget {
                 icon: achievement.isUnlocked
                     ? Icons.verified_rounded
                     : Icons.timelapse_rounded,
-                accent: achievement.isUnlocked ? Colors.tealAccent : AppPalette.gold,
+                accent: achievement.isUnlocked
+                    ? Colors.tealAccent
+                    : AppPalette.gold,
               ),
             ],
           ),
@@ -649,7 +654,8 @@ class _SettingsPanel extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(strings.themeLabel, style: Theme.of(context).textTheme.titleMedium),
+        Text(strings.themeLabel,
+            style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 10),
         SegmentedButton<ThemeMode>(
           segments: ThemeMode.values
@@ -666,7 +672,8 @@ class _SettingsPanel extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 18),
-        Text(strings.languageLabel, style: Theme.of(context).textTheme.titleMedium),
+        Text(strings.languageLabel,
+            style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 10),
         SegmentedButton<AppLanguage>(
           segments: AppLanguage.values
@@ -766,7 +773,8 @@ class _FriendEditorDialogState extends State<_FriendEditorDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(_isEditing ? widget.strings.editFriend : widget.strings.addFriend),
+      title: Text(
+          _isEditing ? widget.strings.editFriend : widget.strings.addFriend),
       content: SizedBox(
         width: 480,
         child: SingleChildScrollView(
@@ -791,7 +799,8 @@ class _FriendEditorDialogState extends State<_FriendEditorDialog> {
                     return ActionChip(
                       onPressed: () {
                         _nameController.text = suggestion.name;
-                        _scenarioController.text = suggestion.favoriteScenario ?? '';
+                        _scenarioController.text =
+                            suggestion.favoriteScenario ?? '';
                         _roleController.text = suggestion.favoriteRole ?? '';
                       },
                       label: Text(label),
@@ -855,7 +864,8 @@ class _FriendEditorDialogState extends State<_FriendEditorDialog> {
               ),
             );
           },
-          child: Text(_isEditing ? widget.strings.save : widget.strings.addFriend),
+          child:
+              Text(_isEditing ? widget.strings.save : widget.strings.addFriend),
         ),
       ],
     );

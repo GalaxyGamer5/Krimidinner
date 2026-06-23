@@ -15,6 +15,18 @@ enum _WindowId { chat, notes, evidence, role }
 
 const _reactionChoices = ['👀', '🤔', '😱', '🎯'];
 
+class _PlayerMarkerOption {
+  const _PlayerMarkerOption({
+    required this.id,
+    required this.label,
+    required this.color,
+  });
+
+  final String id;
+  final String label;
+  final Color color;
+}
+
 const _culpritRoleIds = <String, String>{
   'villa_no_7': 'amara',
   'aurelia_express': 'gabriel',
@@ -323,7 +335,8 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
       return;
     }
 
-    final isFinalVisiblePhase = lobby.phaseIndex >= mysteryCase.phases.length - 1;
+    final isFinalVisiblePhase =
+        lobby.phaseIndex >= mysteryCase.phases.length - 1;
     if (isFinalVisiblePhase) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -548,7 +561,8 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     final state = ref.watch(mysteryControllerProvider);
     final appSettings = ref.watch(appSettingsProvider);
     final strings = ref.watch(appStringsProvider);
-    final lobby = state.lobbies.where((entry) => entry.code == widget.code).firstOrNull;
+    final lobby =
+        state.lobbies.where((entry) => entry.code == widget.code).firstOrNull;
     final mysteryCase =
         lobby == null ? null : ref.watch(mysteryCaseProvider(lobby.caseId));
 
@@ -581,10 +595,13 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     final rejoinPlayer = _rejoinCandidate(lobby, state.localAlias);
     final isHost = viewer?.id == lobby.hostId;
     final currentPhase = mysteryCase.phases[lobby.phaseIndex];
-    final viewerRoleId = viewer == null ? null : lobby.roleAssignments[viewer.id];
+    final viewerRoleId =
+        viewer == null ? null : lobby.roleAssignments[viewer.id];
     final viewerRole = viewerRoleId == null
         ? null
-        : mysteryCase.roles.where((role) => role.id == viewerRoleId).firstOrNull;
+        : mysteryCase.roles
+            .where((role) => role.id == viewerRoleId)
+            .firstOrNull;
 
     if (viewer == null && rejoinPlayer != null) {
       return Scaffold(
@@ -651,7 +668,9 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
     final remaining = _phaseRemaining(lobby, currentPhase);
     final expandedEvidence = _expandedEvidenceId == null
         ? null
-        : lobby.evidences.where((evidence) => evidence.id == _expandedEvidenceId).firstOrNull;
+        : lobby.evidences
+            .where((evidence) => evidence.id == _expandedEvidenceId)
+            .firstOrNull;
 
     return Scaffold(
       backgroundColor: AppPalette.noir,
@@ -1045,8 +1064,8 @@ class _GameSessionScreenState extends ConsumerState<GameSessionScreen> {
       return Duration(minutes: currentPhase.durationMinutes);
     }
 
-    final phaseEnd =
-        lobby.phaseStartedAt!.add(Duration(minutes: currentPhase.durationMinutes));
+    final phaseEnd = lobby.phaseStartedAt!
+        .add(Duration(minutes: currentPhase.durationMinutes));
     final remaining = phaseEnd.difference(_now);
     return remaining.isNegative ? Duration.zero : remaining;
   }
@@ -1227,7 +1246,8 @@ class _ChatWindowContent extends ConsumerWidget {
                 isMine: isMine,
                 viewer: viewer,
                 animationsEnabled: animationsEnabled,
-                onOpenEvidence: evidence == null ? null : () => onOpenEvidence(evidence),
+                onOpenEvidence:
+                    evidence == null ? null : () => onOpenEvidence(evidence),
                 onReact: onOpenReactionPicker == null
                     ? null
                     : () => onOpenReactionPicker!(message),
@@ -1357,7 +1377,8 @@ class _ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = _stringsOf(context);
     final bubbleColor = switch (message.type) {
-      ChatMessageType.direct => Colors.tealAccent.withOpacity(isMine ? 0.18 : 0.12),
+      ChatMessageType.direct =>
+        Colors.tealAccent.withOpacity(isMine ? 0.18 : 0.12),
       ChatMessageType.evidence => const Color(0xFFE4B969).withOpacity(0.12),
       _ => isMine
           ? AppPalette.gold.withOpacity(0.18)
@@ -1440,7 +1461,8 @@ class _ChatBubble extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  if (message.type == ChatMessageType.evidence && evidence != null)
+                  if (message.type == ChatMessageType.evidence &&
+                      evidence != null)
                     _EvidenceMessageCard(
                       evidence: evidence!,
                       message: message,
@@ -1533,7 +1555,8 @@ class _VotePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = _stringsOf(context);
-    final activePlayerCount = lobby.players.where((player) => player.isOnline).length;
+    final activePlayerCount =
+        lobby.players.where((player) => player.isOnline).length;
     final viewerVote = lobby.votes
         .where((vote) => vote.voterPlayerId == viewer.id)
         .firstOrNull;
@@ -1609,7 +1632,9 @@ MysteryRole? _culpritRoleForCase(MysteryCase mysteryCase) {
   if (culpritRoleId == null) {
     return null;
   }
-  return mysteryCase.roles.where((role) => role.id == culpritRoleId).firstOrNull;
+  return mysteryCase.roles
+      .where((role) => role.id == culpritRoleId)
+      .firstOrNull;
 }
 
 List<_RevealBeat> _buildRevealBeats(
@@ -2076,11 +2101,11 @@ class _ResultsPanel extends StatelessWidget {
 
     final voteCounts = <String, int>{};
     for (final vote in lobby.votes) {
-      voteCounts.update(vote.suspectRoleId, (value) => value + 1, ifAbsent: () => 1);
+      voteCounts.update(vote.suspectRoleId, (value) => value + 1,
+          ifAbsent: () => 1);
     }
 
-    final sortedRoles = [...mysteryCase.roles]
-      ..sort(
+    final sortedRoles = [...mysteryCase.roles]..sort(
         (a, b) => (voteCounts[b.id] ?? 0).compareTo(voteCounts[a.id] ?? 0),
       );
 
@@ -2092,7 +2117,8 @@ class _ResultsPanel extends StatelessWidget {
           message.type == ChatMessageType.evidence) {
         continue;
       }
-      messageCounts.update(message.sender, (value) => value + 1, ifAbsent: () => 1);
+      messageCounts.update(message.sender, (value) => value + 1,
+          ifAbsent: () => 1);
       if (message.type == ChatMessageType.direct) {
         directMessageCounts.update(
           message.sender,
@@ -2111,10 +2137,14 @@ class _ResultsPanel extends StatelessWidget {
     final revealBeats = _buildRevealBeats(mysteryCase, culpritRole, strings);
 
     final playerRows = lobby.players.map((player) {
-      final vote = lobby.votes.where((entry) => entry.voterPlayerId == player.id).firstOrNull;
+      final vote = lobby.votes
+          .where((entry) => entry.voterPlayerId == player.id)
+          .firstOrNull;
       final guessedRole = vote == null
           ? null
-          : mysteryCase.roles.where((role) => role.id == vote.suspectRoleId).firstOrNull;
+          : mysteryCase.roles
+              .where((role) => role.id == vote.suspectRoleId)
+              .firstOrNull;
       final guessedCorrectly = guessedRole?.id == culpritRole.id;
       return _PlayerSummaryRow(
         playerName: player.name,
@@ -2215,7 +2245,8 @@ class _ResultsPanel extends StatelessWidget {
                   fr: 'Bons pronostics',
                   es: 'Aciertos',
                 ),
-                value: '${playerRows.where((row) => row.guessedCorrectly).length}',
+                value:
+                    '${playerRows.where((row) => row.guessedCorrectly).length}',
               ),
               _ResultMetric(
                 label: strings.tr(
@@ -2793,6 +2824,7 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
     with TickerProviderStateMixin {
   late TabController _tabController;
   final Map<String, TextEditingController> _playerControllers = {};
+  final Map<String, Set<String>> _playerMarkers = {};
 
   @override
   void initState() {
@@ -2811,6 +2843,7 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
       final controller = TextEditingController();
       _playerControllers[player.id] = controller;
       _loadPlayerNotes(player);
+      _loadPlayerMarkers(player);
     }
   }
 
@@ -2834,6 +2867,7 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
   }
 
   Future<void> _loadPlayerNotes(LobbyPlayer player) async {
+    final strings = _stringsOf(context);
     final prefs = await SharedPreferences.getInstance();
     final key = 'player_notes_${widget.lobbyCode}_${player.id}';
     final saved = prefs.getString(key);
@@ -2846,14 +2880,12 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
     }
 
     final role = _roleNameForPlayer(player);
-    final strings = _stringsOf(context);
-    final defaultText =
-        strings.tr(
-          de: 'Echter Name: ${player.name}${role == null ? '' : '\nRolle: $role'}\n\n',
-          en: 'Real name: ${player.name}${role == null ? '' : '\nRole: $role'}\n\n',
-          fr: 'Nom reel : ${player.name}${role == null ? '' : '\nRole : $role'}\n\n',
-          es: 'Nombre real: ${player.name}${role == null ? '' : '\nRol: $role'}\n\n',
-        );
+    final defaultText = strings.tr(
+      de: 'Echter Name: ${player.name}${role == null ? '' : '\nRolle: $role'}\n\n',
+      en: 'Real name: ${player.name}${role == null ? '' : '\nRole: $role'}\n\n',
+      fr: 'Nom reel : ${player.name}${role == null ? '' : '\nRole : $role'}\n\n',
+      es: 'Nombre real: ${player.name}${role == null ? '' : '\nRol: $role'}\n\n',
+    );
     _playerControllers[player.id]?.text = defaultText;
     await prefs.setString(key, defaultText);
     if (mounted) {
@@ -2867,6 +2899,32 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
     await prefs.setString(key, _playerControllers[player.id]?.text ?? '');
   }
 
+  Future<void> _loadPlayerMarkers(LobbyPlayer player) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'player_markers_${widget.lobbyCode}_${player.id}';
+    final saved = prefs.getStringList(key) ?? const <String>[];
+    _playerMarkers[player.id] = saved.toSet();
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _togglePlayerMarker(LobbyPlayer player, String markerId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'player_markers_${widget.lobbyCode}_${player.id}';
+    final updated = {...(_playerMarkers[player.id] ?? <String>{})};
+    if (updated.contains(markerId)) {
+      updated.remove(markerId);
+    } else {
+      updated.add(markerId);
+    }
+    _playerMarkers[player.id] = updated;
+    await prefs.setStringList(key, updated.toList()..sort());
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   String? _roleNameForPlayer(LobbyPlayer player) {
     final roleId = widget.lobby.roleAssignments[player.id];
     if (roleId == null) {
@@ -2878,10 +2936,96 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
         ?.name;
   }
 
+  List<_PlayerMarkerOption> _markerOptions(AppStrings strings) {
+    return [
+      _PlayerMarkerOption(
+        id: 'suspect',
+        label: strings.tr(
+          de: 'Verdaechtig',
+          en: 'Suspicious',
+          fr: 'Suspect',
+          es: 'Sospechoso',
+        ),
+        color: const Color(0xFFE57373),
+      ),
+      _PlayerMarkerOption(
+        id: 'trust',
+        label: strings.tr(
+          de: 'Vertrauen',
+          en: 'Trusted',
+          fr: 'Fiable',
+          es: 'Confiable',
+        ),
+        color: const Color(0xFF64B5F6),
+      ),
+      _PlayerMarkerOption(
+        id: 'motive',
+        label: strings.tr(
+          de: 'Starkes Motiv',
+          en: 'Strong motive',
+          fr: 'Motif fort',
+          es: 'Motivo fuerte',
+        ),
+        color: const Color(0xFFFFB74D),
+      ),
+      _PlayerMarkerOption(
+        id: 'lying',
+        label: strings.tr(
+          de: 'Luegt vielleicht',
+          en: 'Maybe lying',
+          fr: 'Ment peut-etre',
+          es: 'Quizas miente',
+        ),
+        color: const Color(0xFFBA68C8),
+      ),
+      _PlayerMarkerOption(
+        id: 'no_alibi',
+        label: strings.tr(
+          de: 'Kein Alibi',
+          en: 'No alibi',
+          fr: 'Pas d alibi',
+          es: 'Sin coartada',
+        ),
+        color: const Color(0xFFFF8A65),
+      ),
+      _PlayerMarkerOption(
+        id: 'important',
+        label: strings.tr(
+          de: 'Wichtig',
+          en: 'Important',
+          fr: 'Important',
+          es: 'Importante',
+        ),
+        color: const Color(0xFF4DB6AC),
+      ),
+      _PlayerMarkerOption(
+        id: 'watch',
+        label: strings.tr(
+          de: 'Beobachten',
+          en: 'Watch closely',
+          fr: 'A surveiller',
+          es: 'Vigilar',
+        ),
+        color: const Color(0xFFFFD54F),
+      ),
+      _PlayerMarkerOption(
+        id: 'cleared',
+        label: strings.tr(
+          de: 'Eher entlastet',
+          en: 'Mostly cleared',
+          fr: 'Plutot innocent',
+          es: 'Casi descartado',
+        ),
+        color: const Color(0xFF81C784),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = _stringsOf(context);
     final players = widget.lobby.players;
+    final markerOptions = _markerOptions(strings);
     return Column(
       children: [
         Container(
@@ -2894,7 +3038,8 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
             indicatorWeight: 2,
             labelColor: Colors.tealAccent,
             unselectedLabelColor: Colors.white38,
-            labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            labelStyle:
+                const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
             dividerColor: Colors.white12,
             tabs: [
               Tab(
@@ -2968,8 +3113,13 @@ class _NotesWindowContentState extends State<_NotesWindowContent>
                     es: 'Notas sobre ${roleName ?? player.name} (${player.name})...',
                   ),
                   accentColor: Colors.tealAccent,
-                  headerText:
-                      roleName == null ? player.name : '$roleName | ${player.name}',
+                  headerText: roleName == null
+                      ? player.name
+                      : '$roleName | ${player.name}',
+                  markerOptions: markerOptions,
+                  selectedMarkers: _playerMarkers[player.id] ?? const <String>{},
+                  onToggleMarker: (markerId) =>
+                      _togglePlayerMarker(player, markerId),
                   onChanged: () => _savePlayerNotes(player),
                 );
               }),
@@ -2988,6 +3138,9 @@ class _NoteEditor extends StatelessWidget {
     required this.accentColor,
     required this.onChanged,
     this.headerText,
+    this.markerOptions = const [],
+    this.selectedMarkers = const <String>{},
+    this.onToggleMarker,
   });
 
   final TextEditingController controller;
@@ -2995,6 +3148,9 @@ class _NoteEditor extends StatelessWidget {
   final Color accentColor;
   final VoidCallback onChanged;
   final String? headerText;
+  final List<_PlayerMarkerOption> markerOptions;
+  final Set<String> selectedMarkers;
+  final ValueChanged<String>? onToggleMarker;
 
   @override
   Widget build(BuildContext context) {
@@ -3018,6 +3174,37 @@ class _NoteEditor extends StatelessWidget {
                   color: accentColor,
                   fontWeight: FontWeight.w700,
                 ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (markerOptions.isNotEmpty && onToggleMarker != null) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: markerOptions.map((marker) {
+                  final isSelected = selectedMarkers.contains(marker.id);
+                  return FilterChip(
+                    label: Text(marker.label),
+                    selected: isSelected,
+                    onSelected: (_) => onToggleMarker!(marker.id),
+                    selectedColor: marker.color.withOpacity(0.18),
+                    backgroundColor: Colors.white.withOpacity(0.04),
+                    checkmarkColor: marker.color,
+                    side: BorderSide(
+                      color: isSelected
+                          ? marker.color.withOpacity(0.5)
+                          : Colors.white.withOpacity(0.08),
+                    ),
+                    labelStyle: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? marker.color : Colors.white70,
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 10),
@@ -3090,7 +3277,8 @@ class _AppBarToggle extends StatelessWidget {
                 ? activeColor.withOpacity(0.18)
                 : Colors.white.withOpacity(0.06),
             border: Border.all(
-              color: isActive ? activeColor.withOpacity(0.45) : Colors.transparent,
+              color:
+                  isActive ? activeColor.withOpacity(0.45) : Colors.transparent,
             ),
           ),
           child: Row(
@@ -3184,8 +3372,9 @@ class _TargetChip extends StatelessWidget {
               ? Colors.tealAccent.withOpacity(0.16)
               : Colors.white.withOpacity(0.04),
           border: Border.all(
-            color:
-                isSelected ? Colors.tealAccent.withOpacity(0.35) : Colors.white12,
+            color: isSelected
+                ? Colors.tealAccent.withOpacity(0.35)
+                : Colors.white12,
           ),
         ),
         child: Row(
@@ -3278,7 +3467,8 @@ class _EvidenceMessageCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(18)),
               child: Image.asset(
                 evidence.assetPath,
                 width: double.infinity,
@@ -3439,7 +3629,6 @@ class _ResultMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final strings = _stringsOf(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -3545,6 +3734,7 @@ class _PlayerSummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = _stringsOf(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -3722,5 +3912,3 @@ extension _IterableFirstOrNull<T> on Iterable<T> {
     return null;
   }
 }
-
-

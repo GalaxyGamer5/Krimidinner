@@ -71,8 +71,8 @@ class CaseDetailScreen extends ConsumerWidget {
                       accent: Colors.white,
                     ),
                     InfoPill(
-                      label:
-                          strings.playersLabel(mysteryCase.playerMin, mysteryCase.playerMax),
+                      label: strings.playersLabel(
+                          mysteryCase.playerMin, mysteryCase.playerMax),
                       icon: Icons.groups_rounded,
                       accent: Colors.white,
                     ),
@@ -100,7 +100,9 @@ class CaseDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
                 FilledButton.icon(
                   onPressed: () {
-                    final code = ref.read(mysteryControllerProvider.notifier).createLobby(
+                    final code = ref
+                        .read(mysteryControllerProvider.notifier)
+                        .createLobby(
                           mysteryCase: mysteryCase,
                           hostName: state.localAlias,
                         );
@@ -128,8 +130,8 @@ class CaseDetailScreen extends ConsumerWidget {
                   runSpacing: 10,
                   children: [
                     _MetricBadge(
-                      label:
-                          strings.playersLabel(mysteryCase.playerMin, mysteryCase.playerMax),
+                      label: strings.playersLabel(
+                          mysteryCase.playerMin, mysteryCase.playerMax),
                     ),
                     _MetricBadge(
                       label: strings.minutesLong(mysteryCase.durationMinutes),

@@ -24,7 +24,8 @@ class MysteryShell extends ConsumerWidget {
     final state = ref.watch(mysteryControllerProvider);
     final hasActiveLobby = state.lobbies.isNotEmpty;
     final destinations = [
-      _Destination(label: strings.navHome, icon: Icons.home_rounded, path: '/hub'),
+      _Destination(
+          label: strings.navHome, icon: Icons.home_rounded, path: '/hub'),
       _Destination(
         label: strings.navCases,
         icon: Icons.auto_stories_rounded,
@@ -65,7 +66,8 @@ class MysteryShell extends ConsumerWidget {
             return true;
           }
           if (dest.path == '/lobbies' &&
-              (location.startsWith('/lobbies') || location.startsWith('/invite'))) {
+              (location.startsWith('/lobbies') ||
+                  location.startsWith('/invite'))) {
             return true;
           }
           if (dest.path == '/roles' && location.startsWith('/roles')) {
@@ -494,7 +496,8 @@ class TwoColumnLayout extends StatelessWidget {
               flex: 3,
               child: Column(
                 children: [
-                  ...primary.expand((item) => [item, const SizedBox(height: 16)]),
+                  ...primary
+                      .expand((item) => [item, const SizedBox(height: 16)]),
                 ]..removeLast(),
               ),
             ),
@@ -503,7 +506,8 @@ class TwoColumnLayout extends StatelessWidget {
               flex: 2,
               child: Column(
                 children: [
-                  ...secondary.expand((item) => [item, const SizedBox(height: 16)]),
+                  ...secondary
+                      .expand((item) => [item, const SizedBox(height: 16)]),
                 ]..removeLast(),
               ),
             ),

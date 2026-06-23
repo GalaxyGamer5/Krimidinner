@@ -43,7 +43,8 @@ class _CasesScreenState extends ConsumerState<CasesScreen> {
                     FilterChip(
                       label: Text(strings.filterAll),
                       selected: selectedCategory == null,
-                      onSelected: (_) => setState(() => selectedCategory = null),
+                      onSelected: (_) =>
+                          setState(() => selectedCategory = null),
                     ),
                     ...MysteryCategory.values.map(
                       (category) => FilterChip(
@@ -153,11 +154,13 @@ class _CaseCard extends StatelessWidget {
               runSpacing: 10,
               children: [
                 _MetaBubble(
-                  label:
-                      strings.playersLabel(mysteryCase.playerMin, mysteryCase.playerMax),
+                  label: strings.playersLabel(
+                      mysteryCase.playerMin, mysteryCase.playerMax),
                 ),
-                _MetaBubble(label: strings.minutesShort(mysteryCase.durationMinutes)),
-                _MetaBubble(label: strings.difficultyLabel(mysteryCase.difficulty)),
+                _MetaBubble(
+                    label: strings.minutesShort(mysteryCase.durationMinutes)),
+                _MetaBubble(
+                    label: strings.difficultyLabel(mysteryCase.difficulty)),
               ],
             ),
             const SizedBox(height: 18),

@@ -75,7 +75,8 @@ class _LobbiesScreenState extends ConsumerState<LobbiesScreen> {
                   cases: cases,
                   nameController: _nameController,
                   selectedCaseId: _selectedCaseId,
-                  onCaseChanged: (value) => setState(() => _selectedCaseId = value),
+                  onCaseChanged: (value) =>
+                      setState(() => _selectedCaseId = value),
                   onCreate: _createLobby,
                 );
                 final joinPanel = _JoinLobbyPanel(
@@ -178,7 +179,8 @@ class _LobbiesScreenState extends ConsumerState<LobbiesScreen> {
       return;
     }
 
-    final selected = cases.where((item) => item.id == _selectedCaseId).firstOrNull;
+    final selected =
+        cases.where((item) => item.id == _selectedCaseId).firstOrNull;
     if (selected == null) {
       _showMessage(
         strings.tr(
@@ -227,7 +229,8 @@ class _LobbiesScreenState extends ConsumerState<LobbiesScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -451,7 +454,8 @@ class _LobbyPreviewCard extends ConsumerWidget {
                     runSpacing: 10,
                     children: [
                       InfoPill(
-                        label: '${strings.tr(de: 'Code', en: 'Code', fr: 'Code', es: 'Codigo')} ${lobby.code}',
+                        label:
+                            '${strings.tr(de: 'Code', en: 'Code', fr: 'Code', es: 'Codigo')} ${lobby.code}',
                         icon: Icons.qr_code_rounded,
                       ),
                       InfoPill(

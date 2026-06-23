@@ -74,7 +74,8 @@ final isLoggedInProvider = Provider<bool>((ref) {
 final playerStatsProvider = Provider<PlayerStats>((ref) {
   final state = ref.watch(mysteryControllerProvider);
   final catalog = ref.watch(mysteryCatalogProvider);
-  final completedGames = state.lobbies.where((lobby) => lobby.isCompleted).length;
+  final completedGames =
+      state.lobbies.where((lobby) => lobby.isCompleted).length;
   final startedGames = state.lobbies.where((lobby) => lobby.hasStarted).length;
   final revealedHints = state.lobbies.fold<int>(
     0,
@@ -247,7 +248,8 @@ class MysteryController extends Notifier<MysteryState> {
 
   @override
   MysteryState build() {
-    final restored = _restoreState(_prefs.getString(_stateKey)) ?? _defaultState();
+    final restored =
+        _restoreState(_prefs.getString(_stateKey)) ?? _defaultState();
     return _cleanupExpiredRejoins(restored);
   }
 
@@ -302,7 +304,8 @@ class MysteryController extends Notifier<MysteryState> {
       return 'Bitte gib einen Namen ein.';
     }
 
-    final friendIndex = state.friends.indexWhere((friend) => friend.id == friendId);
+    final friendIndex =
+        state.friends.indexWhere((friend) => friend.id == friendId);
     if (friendIndex == -1) {
       return 'Freund nicht gefunden.';
     }
@@ -331,9 +334,8 @@ class MysteryController extends Notifier<MysteryState> {
   }
 
   void removeFriend(String friendId) {
-    final updatedFriends = state.friends
-        .where((friend) => friend.id != friendId)
-        .toList();
+    final updatedFriends =
+        state.friends.where((friend) => friend.id != friendId).toList();
     if (updatedFriends.length == state.friends.length) {
       return;
     }
@@ -371,6 +373,7 @@ class MysteryController extends Notifier<MysteryState> {
       evidences: const [],
       votes: const [],
       revealedHintIds: const [],
+      hostChecklist: _buildDefaultChecklist(mysteryCase),
       phaseIndex: 0,
       hasStarted: false,
       isCompleted: false,
@@ -471,21 +474,24 @@ class MysteryController extends Notifier<MysteryState> {
             )
             .toList();
 
-    final updatedLobby = lobby.copyWith(
-      players: [...lobby.players, player],
-      invitations: updatedInvitations,
-      roleAssignments: {
-        ...lobby.roleAssignments,
-        player.id: assignedRoleId,
-      },
-      messages: [
-        ...lobby.messages,
-        _systemMessage(
-          invitation == null
-              ? '$trimmedAlias ist der Lobby beigetreten.'
-              : '$trimmedAlias hat die Einladung angenommen und ist der Lobby beigetreten.',
-        ),
-      ],
+    final updatedLobby = _syncHostChecklist(
+      lobby.copyWith(
+        players: [...lobby.players, player],
+        invitations: updatedInvitations,
+        roleAssignments: {
+          ...lobby.roleAssignments,
+          player.id: assignedRoleId,
+        },
+        messages: [
+          ...lobby.messages,
+          _systemMessage(
+            invitation == null
+                ? '$trimmedAlias ist der Lobby beigetreten.'
+                : '$trimmedAlias hat die Einladung angenommen und ist der Lobby beigetreten.',
+          ),
+        ],
+      ),
+      mysteryCase,
     );
 
     final updatedLobbies = [...state.lobbies];
@@ -519,7 +525,8 @@ class MysteryController extends Notifier<MysteryState> {
 
     final lobby = state.lobbies[lobbyIndex];
     final player = lobby.players
-        .where((entry) => entry.name.toLowerCase() == trimmedAlias.toLowerCase())
+        .where(
+            (entry) => entry.name.toLowerCase() == trimmedAlias.toLowerCase())
         .firstOrNull;
     if (player == null) {
       return 'Fuer diesen Namen ist kein offener Wiederbeitritt hinterlegt.';
@@ -549,7 +556,8 @@ class MysteryController extends Notifier<MysteryState> {
     }
 
     final lobby = state.lobbies[lobbyIndex];
-    final playerIndex = lobby.players.indexWhere((player) => player.id == playerId);
+    final playerIndex =
+        lobby.players.indexWhere((player) => player.id == playerId);
     if (playerIndex == -1) {
       return 'Spieler nicht gefunden.';
     }
@@ -568,18 +576,35 @@ class MysteryController extends Notifier<MysteryState> {
       rejoinAvailableUntil: rejoinUntil,
     );
 
-    final updatedLobby = lobby.copyWith(
-      players: updatedPlayers,
-      votes: lobby.votes
-          .where((vote) => vote.voterPlayerId != playerId)
-          .toList(),
-      messages: [
-        ...lobby.messages,
-        _systemMessage(
-          '${player.name} hat die Lobby verlassen. Wiederbeitritt bis ${_formatDateTime(rejoinUntil)} moeglich.',
-        ),
-      ],
-    );
+    final mysteryCase = findMysteryCaseById(lobby.caseId);
+    final updatedLobby = mysteryCase == null
+        ? lobby.copyWith(
+            players: updatedPlayers,
+            votes: lobby.votes
+                .where((vote) => vote.voterPlayerId != playerId)
+                .toList(),
+            messages: [
+              ...lobby.messages,
+              _systemMessage(
+                '${player.name} hat die Lobby verlassen. Wiederbeitritt bis ${_formatDateTime(rejoinUntil)} moeglich.',
+              ),
+            ],
+          )
+        : _syncHostChecklist(
+            lobby.copyWith(
+              players: updatedPlayers,
+              votes: lobby.votes
+                  .where((vote) => vote.voterPlayerId != playerId)
+                  .toList(),
+              messages: [
+                ...lobby.messages,
+                _systemMessage(
+                  '${player.name} hat die Lobby verlassen. Wiederbeitritt bis ${_formatDateTime(rejoinUntil)} moeglich.',
+                ),
+              ],
+            ),
+            mysteryCase,
+          );
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
@@ -655,12 +680,15 @@ class MysteryController extends Notifier<MysteryState> {
       status: LobbyInvitationStatus.pending,
     );
 
-    final updatedLobby = lobby.copyWith(
-      invitations: [invitation, ...lobby.invitations],
-      messages: [
-        ...lobby.messages,
-        _systemMessage('Einladung für $trimmedRecipient wurde erstellt.'),
-      ],
+    final updatedLobby = _syncHostChecklist(
+      lobby.copyWith(
+        invitations: [invitation, ...lobby.invitations],
+        messages: [
+          ...lobby.messages,
+          _systemMessage('Einladung für $trimmedRecipient wurde erstellt.'),
+        ],
+      ),
+      mysteryCase,
     );
 
     final updatedLobbies = [...state.lobbies];
@@ -690,21 +718,41 @@ class MysteryController extends Notifier<MysteryState> {
       return null;
     }
 
-    final updatedLobby = lobby.copyWith(
-      invitations: lobby.invitations
-          .map(
-            (entry) => entry.id == invitationId
-                ? entry.copyWith(status: LobbyInvitationStatus.revoked)
-                : entry,
+    final mysteryCase = findMysteryCaseById(lobby.caseId);
+    final updatedLobby = mysteryCase == null
+        ? lobby.copyWith(
+            invitations: lobby.invitations
+                .map(
+                  (entry) => entry.id == invitationId
+                      ? entry.copyWith(status: LobbyInvitationStatus.revoked)
+                      : entry,
+                )
+                .toList(),
+            messages: [
+              ...lobby.messages,
+              _systemMessage(
+                'Die Einladung für ${invitation.recipientName} wurde zurückgezogen.',
+              ),
+            ],
           )
-          .toList(),
-      messages: [
-        ...lobby.messages,
-        _systemMessage(
-          'Die Einladung für ${invitation.recipientName} wurde zurückgezogen.',
-        ),
-      ],
-    );
+        : _syncHostChecklist(
+            lobby.copyWith(
+              invitations: lobby.invitations
+                  .map(
+                    (entry) => entry.id == invitationId
+                        ? entry.copyWith(status: LobbyInvitationStatus.revoked)
+                        : entry,
+                  )
+                  .toList(),
+              messages: [
+                ...lobby.messages,
+                _systemMessage(
+                  'Die Einladung für ${invitation.recipientName} wurde zurückgezogen.',
+                ),
+              ],
+            ),
+            mysteryCase,
+          );
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
@@ -761,16 +809,19 @@ class MysteryController extends Notifier<MysteryState> {
       return 'Der zugehoerige Fall fehlt.';
     }
 
-    var updatedLobby = lobby.copyWith(
-      hasStarted: true,
-      phaseIndex: 0,
-      phaseStartedAt: DateTime.now(),
-      messages: [
-        ...lobby.messages,
-        _systemMessage(
-          'Das Spiel hat begonnen. Phase 1 "${mysteryCase.phases.first.title}" ist aktiv.',
-        ),
-      ],
+    var updatedLobby = _syncHostChecklist(
+      lobby.copyWith(
+        hasStarted: true,
+        phaseIndex: 0,
+        phaseStartedAt: DateTime.now(),
+        messages: [
+          ...lobby.messages,
+          _systemMessage(
+            'Das Spiel hat begonnen. Phase 1 "${mysteryCase.phases.first.title}" ist aktiv.',
+          ),
+        ],
+      ),
+      mysteryCase,
     );
     updatedLobby = _applyPhaseHints(updatedLobby, mysteryCase);
 
@@ -802,12 +853,17 @@ class MysteryController extends Notifier<MysteryState> {
     }
 
     if (lobby.phaseIndex >= mysteryCase.phases.length - 1) {
-      final completedLobby = lobby.copyWith(
-        isCompleted: true,
-        messages: [
-          ...lobby.messages,
-          _systemMessage('Die Aufloesung ist abgeschlossen. Fall geschlossen.'),
-        ],
+      final completedLobby = _syncHostChecklist(
+        lobby.copyWith(
+          isCompleted: true,
+          messages: [
+            ...lobby.messages,
+            _systemMessage(
+              'Die Aufloesung ist abgeschlossen. Fall geschlossen.',
+            ),
+          ],
+        ),
+        mysteryCase,
       );
       final updatedLobbies = [...state.lobbies];
       updatedLobbies[lobbyIndex] = completedLobby;
@@ -815,15 +871,18 @@ class MysteryController extends Notifier<MysteryState> {
       return null;
     }
 
-    var updatedLobby = lobby.copyWith(
-      phaseIndex: lobby.phaseIndex + 1,
-      phaseStartedAt: DateTime.now(),
-      messages: [
-        ...lobby.messages,
-        _systemMessage(
-          'Neue Phase: ${mysteryCase.phases[lobby.phaseIndex + 1].title}.',
-        ),
-      ],
+    var updatedLobby = _syncHostChecklist(
+      lobby.copyWith(
+        phaseIndex: lobby.phaseIndex + 1,
+        phaseStartedAt: DateTime.now(),
+        messages: [
+          ...lobby.messages,
+          _systemMessage(
+            'Neue Phase: ${mysteryCase.phases[lobby.phaseIndex + 1].title}.',
+          ),
+        ],
+      ),
+      mysteryCase,
     );
     updatedLobby = _applyPhaseHints(updatedLobby, mysteryCase);
     updatedLobby = _appendPhaseEvidence(updatedLobby, mysteryCase);
@@ -856,12 +915,15 @@ class MysteryController extends Notifier<MysteryState> {
       return 'Hinweis nicht gefunden.';
     }
 
-    final updatedLobby = lobby.copyWith(
-      revealedHintIds: [...lobby.revealedHintIds, hintId],
-      messages: [
-        ...lobby.messages,
-        _systemMessage('Hinweis freigegeben: ${hint.title}.'),
-      ],
+    final updatedLobby = _syncHostChecklist(
+      lobby.copyWith(
+        revealedHintIds: [...lobby.revealedHintIds, hintId],
+        messages: [
+          ...lobby.messages,
+          _systemMessage('Hinweis freigegeben: ${hint.title}.'),
+        ],
+      ),
+      mysteryCase,
     );
 
     final updatedLobbies = [...state.lobbies];
@@ -900,18 +962,76 @@ class MysteryController extends Notifier<MysteryState> {
 
     final updatedAssignments = {...lobby.roleAssignments}..remove(playerId);
 
-    final updatedLobby = lobby.copyWith(
-      players: lobby.players.where((entry) => entry.id != playerId).toList(),
-      invitations: updatedInvitations,
-      roleAssignments: updatedAssignments,
-      votes: lobby.votes
-          .where((vote) => vote.voterPlayerId != playerId)
-          .toList(),
-      messages: [
-        ...lobby.messages,
-        _systemMessage('${player.name} wurde aus der Lobby entfernt.'),
-      ],
-    );
+    final mysteryCase = findMysteryCaseById(lobby.caseId);
+    final updatedLobby = mysteryCase == null
+        ? lobby.copyWith(
+            players:
+                lobby.players.where((entry) => entry.id != playerId).toList(),
+            invitations: updatedInvitations,
+            roleAssignments: updatedAssignments,
+            votes: lobby.votes
+                .where((vote) => vote.voterPlayerId != playerId)
+                .toList(),
+            messages: [
+              ...lobby.messages,
+              _systemMessage('${player.name} wurde aus der Lobby entfernt.'),
+            ],
+          )
+        : _syncHostChecklist(
+            lobby.copyWith(
+              players:
+                  lobby.players.where((entry) => entry.id != playerId).toList(),
+              invitations: updatedInvitations,
+              roleAssignments: updatedAssignments,
+              votes: lobby.votes
+                  .where((vote) => vote.voterPlayerId != playerId)
+                  .toList(),
+              messages: [
+                ...lobby.messages,
+                _systemMessage('${player.name} wurde aus der Lobby entfernt.'),
+              ],
+            ),
+            mysteryCase,
+          );
+
+    final updatedLobbies = [...state.lobbies];
+    updatedLobbies[lobbyIndex] = updatedLobby;
+    _updateState(state.copyWith(lobbies: updatedLobbies));
+    return null;
+  }
+
+  String? toggleChecklistItem({
+    required String code,
+    required String itemId,
+  }) {
+    final lobbyIndex = _indexOfLobby(code);
+    if (lobbyIndex == -1) {
+      return 'Lobby nicht gefunden.';
+    }
+
+    final lobby = state.lobbies[lobbyIndex];
+    final itemIndex =
+        lobby.hostChecklist.indexWhere((item) => item.id == itemId);
+    if (itemIndex == -1) {
+      return 'Checklistenpunkt nicht gefunden.';
+    }
+
+    final item = lobby.hostChecklist[itemIndex];
+    if (item.isAuto) {
+      return 'Dieser Checklistenpunkt wird automatisch aktualisiert.';
+    }
+
+    final updatedChecklist = [...lobby.hostChecklist];
+    updatedChecklist[itemIndex] =
+        item.copyWith(isCompleted: !item.isCompleted);
+
+    final mysteryCase = findMysteryCaseById(lobby.caseId);
+    final updatedLobby = mysteryCase == null
+        ? lobby.copyWith(hostChecklist: updatedChecklist)
+        : _syncHostChecklist(
+            lobby.copyWith(hostChecklist: updatedChecklist),
+            mysteryCase,
+          );
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
@@ -949,8 +1069,7 @@ class MysteryController extends Notifier<MysteryState> {
           createdAt: DateTime.now(),
           type: isDirect ? ChatMessageType.direct : ChatMessageType.lobby,
           recipientPlayerId: isDirect ? recipientPlayerId.trim() : null,
-          recipientPlayerName:
-              isDirect ? recipientPlayerName?.trim() : null,
+          recipientPlayerName: isDirect ? recipientPlayerName?.trim() : null,
         ),
       ],
     );
@@ -986,8 +1105,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final reactions = [...message.reactions];
     final existingIndex = reactions.indexWhere(
-      (reaction) =>
-          reaction.playerId == playerId && reaction.emoji == emoji,
+      (reaction) => reaction.playerId == playerId && reaction.emoji == emoji,
     );
 
     if (existingIndex >= 0) {
@@ -1080,6 +1198,88 @@ class MysteryController extends Notifier<MysteryState> {
     ).join();
   }
 
+  List<HostChecklistItem> _buildDefaultChecklist(MysteryCase mysteryCase) {
+    return [
+      const HostChecklistItem(
+        id: 'host_intro',
+        title: 'Gaeste begruessen',
+        description:
+            'Begruesse alle Mitspielenden und erklaere kurz, wie die Runde ablaeuft.',
+        isCompleted: false,
+      ),
+      const HostChecklistItem(
+        id: 'host_materials',
+        title: 'Material und Stimmung vorbereiten',
+        description:
+            'Getraenke, Licht, Musik und alle noetigen Unterlagen bereitlegen.',
+        isCompleted: false,
+      ),
+      HostChecklistItem(
+        id: 'players_ready',
+        title: 'Alle ${mysteryCase.roles.length} Rollen besetzt',
+        description:
+            'Sobald genug Spieler beigetreten sind, wird dieser Punkt automatisch abgehakt.',
+        isCompleted: false,
+        isAuto: true,
+      ),
+      const HostChecklistItem(
+        id: 'roles_assigned',
+        title: 'Rollen verteilt',
+        description:
+            'Die Lobby prueft automatisch, ob fuer alle anwesenden Spieler Rollen vergeben sind.',
+        isCompleted: false,
+        isAuto: true,
+      ),
+      const HostChecklistItem(
+        id: 'game_started',
+        title: 'Spiel gestartet',
+        description:
+            'Wird automatisch abgeschlossen, sobald die erste Phase beginnt.',
+        isCompleted: false,
+        isAuto: true,
+      ),
+      const HostChecklistItem(
+        id: 'case_closed',
+        title: 'Fall abgeschlossen',
+        description:
+            'Dieser Punkt schliesst automatisch, wenn die Aufloesung beendet wurde.',
+        isCompleted: false,
+        isAuto: true,
+      ),
+    ];
+  }
+
+  LobbySession _syncHostChecklist(
+    LobbySession lobby,
+    MysteryCase mysteryCase,
+  ) {
+    final hasEnoughPlayers = lobby.players.length >= mysteryCase.roles.length;
+    final allPlayersAssigned = lobby.players.isNotEmpty &&
+        lobby.players.every((player) => lobby.roleAssignments[player.id] != null);
+
+    final expectedItems = _buildDefaultChecklist(mysteryCase);
+    final currentItems = {for (final item in lobby.hostChecklist) item.id: item};
+    final syncedChecklist = expectedItems.map((item) {
+      final existing = currentItems[item.id];
+      final completed = switch (item.id) {
+        'players_ready' => hasEnoughPlayers,
+        'roles_assigned' => allPlayersAssigned,
+        'game_started' => lobby.hasStarted,
+        'case_closed' => lobby.isCompleted,
+        _ => existing?.isCompleted ?? item.isCompleted,
+      };
+
+      return item.copyWith(
+        isCompleted: completed,
+        title: item.title,
+        description: item.description,
+        isAuto: item.isAuto,
+      );
+    }).toList();
+
+    return lobby.copyWith(hostChecklist: syncedChecklist);
+  }
+
   LobbySession _assignRoles(
     LobbySession lobby,
     MysteryCase mysteryCase, {
@@ -1124,7 +1324,10 @@ class MysteryController extends Notifier<MysteryState> {
       assignments[player.id] = availableRoleIds.removeAt(0);
     }
 
-    return lobby.copyWith(roleAssignments: assignments);
+    return _syncHostChecklist(
+      lobby.copyWith(roleAssignments: assignments),
+      mysteryCase,
+    );
   }
 
   LobbySession? _assignRoleToPlayer(
@@ -1139,11 +1342,14 @@ class MysteryController extends Notifier<MysteryState> {
       return null;
     }
 
-    return lobby.copyWith(
-      roleAssignments: {
-        ...lobby.roleAssignments,
-        playerId: selectedRoleId,
-      },
+    return _syncHostChecklist(
+      lobby.copyWith(
+        roleAssignments: {
+          ...lobby.roleAssignments,
+          playerId: selectedRoleId,
+        },
+      ),
+      mysteryCase,
     );
   }
 
@@ -1316,13 +1522,27 @@ class MysteryController extends Notifier<MysteryState> {
         )
         .toList();
 
-    final updatedLobby = lobby.copyWith(
-      players: updatedPlayers,
-      messages: [
-        ...lobby.messages,
-        _systemMessage('$alias ist wieder in die Lobby zurueckgekehrt.'),
-      ],
-    );
+    final mysteryCase = findMysteryCaseById(lobby.caseId);
+    final updatedLobby = mysteryCase == null
+        ? lobby.copyWith(
+            players: updatedPlayers,
+            messages: [
+              ...lobby.messages,
+              _systemMessage('$alias ist wieder in die Lobby zurueckgekehrt.'),
+            ],
+          )
+        : _syncHostChecklist(
+            lobby.copyWith(
+              players: updatedPlayers,
+              messages: [
+                ...lobby.messages,
+                _systemMessage(
+                  '$alias ist wieder in die Lobby zurueckgekehrt.',
+                ),
+              ],
+            ),
+            mysteryCase,
+          );
 
     final updatedLobbies = [...state.lobbies];
     updatedLobbies[lobbyIndex] = updatedLobby;
@@ -1400,13 +1620,14 @@ class MysteryController extends Notifier<MysteryState> {
 
     final updatedInvitations = lobby.invitations
         .map(
-          (invitation) => expiredPlayerIds.contains(invitation.acceptedByPlayerId)
-              ? invitation.copyWith(
-                  status: LobbyInvitationStatus.revoked,
-                  clearAcceptedAt: true,
-                  clearAcceptedByPlayerId: true,
-                )
-              : invitation,
+          (invitation) =>
+              expiredPlayerIds.contains(invitation.acceptedByPlayerId)
+                  ? invitation.copyWith(
+                      status: LobbyInvitationStatus.revoked,
+                      clearAcceptedAt: true,
+                      clearAcceptedByPlayerId: true,
+                    )
+                  : invitation,
         )
         .toList();
 
@@ -1414,12 +1635,16 @@ class MysteryController extends Notifier<MysteryState> {
         .where((vote) => !expiredPlayerIds.contains(vote.voterPlayerId))
         .toList();
 
-    return lobby.copyWith(
+    final mysteryCase = findMysteryCaseById(lobby.caseId);
+    final updatedLobby = lobby.copyWith(
       players: updatedPlayers,
       invitations: updatedInvitations,
       roleAssignments: updatedAssignments,
       votes: updatedVotes,
     );
+    return mysteryCase == null
+        ? updatedLobby
+        : _syncHostChecklist(updatedLobby, mysteryCase);
   }
 
   String _formatDateTime(DateTime value) {
@@ -1503,6 +1728,7 @@ class MysteryController extends Notifier<MysteryState> {
       'evidences': lobby.evidences.map(_serializeEvidence).toList(),
       'votes': lobby.votes.map(_serializeVote).toList(),
       'revealedHintIds': lobby.revealedHintIds,
+      'hostChecklist': lobby.hostChecklist.map(_serializeChecklistItem).toList(),
       'phaseIndex': lobby.phaseIndex,
       'hasStarted': lobby.hasStarted,
       'isCompleted': lobby.isCompleted,
@@ -1573,6 +1799,16 @@ class MysteryController extends Notifier<MysteryState> {
       'voterPlayerId': vote.voterPlayerId,
       'suspectRoleId': vote.suspectRoleId,
       'createdAt': vote.createdAt.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> _serializeChecklistItem(HostChecklistItem item) {
+    return {
+      'id': item.id,
+      'title': item.title,
+      'description': item.description,
+      'isCompleted': item.isCompleted,
+      'isAuto': item.isAuto,
     };
   }
 
@@ -1652,8 +1888,16 @@ class MysteryController extends Notifier<MysteryState> {
         (rawLobby['revealedHintIds'] as List<dynamic>? ?? const [])
             .whereType<String>()
             .toList();
+    final mysteryCase = findMysteryCaseById(caseId);
+    final hostChecklist = (rawLobby['hostChecklist'] as List<dynamic>? ?? const [])
+        .map(_deserializeChecklistItem)
+        .whereType<HostChecklistItem>()
+        .toList();
+    final resolvedChecklist = hostChecklist.isNotEmpty
+        ? hostChecklist
+        : (mysteryCase == null ? const <HostChecklistItem>[] : _buildDefaultChecklist(mysteryCase));
 
-    return LobbySession(
+    final lobby = LobbySession(
       code: code,
       caseId: caseId,
       inviteLink: inviteLink,
@@ -1666,11 +1910,33 @@ class MysteryController extends Notifier<MysteryState> {
       evidences: evidences,
       votes: votes,
       revealedHintIds: revealedHintIds,
+      hostChecklist: resolvedChecklist,
       phaseIndex: (rawLobby['phaseIndex'] as num?)?.toInt() ?? 0,
       hasStarted: rawLobby['hasStarted'] as bool? ?? false,
       isCompleted: rawLobby['isCompleted'] as bool? ?? false,
       phaseStartedAt:
           DateTime.tryParse(rawLobby['phaseStartedAt'] as String? ?? ''),
+    );
+    return mysteryCase == null ? lobby : _syncHostChecklist(lobby, mysteryCase);
+  }
+
+  HostChecklistItem? _deserializeChecklistItem(dynamic rawItem) {
+    if (rawItem is! Map) {
+      return null;
+    }
+
+    final id = rawItem['id'];
+    final title = rawItem['title'];
+    if (id is! String || title is! String) {
+      return null;
+    }
+
+    return HostChecklistItem(
+      id: id,
+      title: title,
+      description: rawItem['description'] as String?,
+      isCompleted: rawItem['isCompleted'] as bool? ?? false,
+      isAuto: rawItem['isAuto'] as bool? ?? false,
     );
   }
 
@@ -1831,8 +2097,7 @@ class MysteryController extends Notifier<MysteryState> {
 
     final voterPlayerId = rawVote['voterPlayerId'];
     final suspectRoleId = rawVote['suspectRoleId'];
-    final createdAt =
-        DateTime.tryParse(rawVote['createdAt'] as String? ?? '');
+    final createdAt = DateTime.tryParse(rawVote['createdAt'] as String? ?? '');
     if (voterPlayerId is! String ||
         suspectRoleId is! String ||
         createdAt == null) {
@@ -1930,7 +2195,8 @@ double _estimatedHoursPlayed(
 ) {
   double totalMinutes = 0;
   for (final lobby in state.lobbies) {
-    final mysteryCase = catalog.where((entry) => entry.id == lobby.caseId).firstOrNull;
+    final mysteryCase =
+        catalog.where((entry) => entry.id == lobby.caseId).firstOrNull;
     if (mysteryCase == null || !lobby.hasStarted) {
       continue;
     }
@@ -1943,7 +2209,8 @@ double _estimatedHoursPlayed(
       continue;
     }
 
-    final visiblePhaseCount = (lobby.phaseIndex + 1).clamp(0, mysteryCase.phases.length);
+    final visiblePhaseCount =
+        (lobby.phaseIndex + 1).clamp(0, mysteryCase.phases.length);
     final phaseMinutes = mysteryCase.phases
         .take(visiblePhaseCount)
         .fold<double>(0, (value, phase) => value + phase.durationMinutes);

@@ -205,7 +205,8 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                   ),
                   child: Center(
                     child: FilledButton.icon(
-                      onPressed: () => context.go('/lobbies/room/${widget.code}/role/${currentRole.id}'),
+                      onPressed: () => context.go(
+                          '/lobbies/room/${widget.code}/role/${currentRole.id}'),
                       icon: const Icon(Icons.menu_book_rounded),
                       label: Text(
                         strings.tr(
@@ -276,12 +277,12 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
             ],
             secondary: [
               SectionPanel(
-                  title: strings.tr(
-                    de: 'Spielerliste & Einladungen',
-                    en: 'Players & invitations',
-                    fr: 'Joueurs et invitations',
-                    es: 'Jugadores e invitaciones',
-                  ),
+                title: strings.tr(
+                  de: 'Spielerliste & Einladungen',
+                  en: 'Players & invitations',
+                  fr: 'Joueurs et invitations',
+                  es: 'Jugadores e invitaciones',
+                ),
                 child: _RosterPanel(
                   lobby: lobby,
                   mysteryCase: mysteryCase,
@@ -326,6 +327,192 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
                     ),
                   ),
                 ),
+              if (lobby.hostChecklist.isNotEmpty)
+                SectionPanel(
+                  title: strings.tr(
+                    de: 'Gastgeber-Checkliste',
+                    en: 'Host checklist',
+                    fr: 'Check-list hote',
+                    es: 'Lista del anfitrion',
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        strings.tr(
+                          de:
+                              '${lobby.hostChecklist.where((item) => item.isCompleted).length} von ${lobby.hostChecklist.length} Punkten erledigt',
+                          en:
+                              '${lobby.hostChecklist.where((item) => item.isCompleted).length} of ${lobby.hostChecklist.length} items completed',
+                          fr:
+                              '${lobby.hostChecklist.where((item) => item.isCompleted).length} sur ${lobby.hostChecklist.length} points termines',
+                          es:
+                              '${lobby.hostChecklist.where((item) => item.isCompleted).length} de ${lobby.hostChecklist.length} puntos completados',
+                        ),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.72),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: LinearProgressIndicator(
+                          value: lobby.hostChecklist.isEmpty
+                              ? 0
+                              : lobby.hostChecklist
+                                      .where((item) => item.isCompleted)
+                                      .length /
+                                  lobby.hostChecklist.length,
+                          minHeight: 8,
+                          backgroundColor: Colors.white.withOpacity(0.08),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                            Colors.tealAccent,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ...lobby.hostChecklist.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: !isHost || item.isAuto
+                                ? null
+                                : () => _runHostAction(
+                                      ref
+                                          .read(
+                                            mysteryControllerProvider.notifier,
+                                          )
+                                          .toggleChecklistItem(
+                                            code: widget.code,
+                                            itemId: item.id,
+                                          ),
+                                    ),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: item.isCompleted
+                                    ? Colors.tealAccent.withOpacity(0.08)
+                                    : Colors.white.withOpacity(0.03),
+                                border: Border.all(
+                                  color: item.isCompleted
+                                      ? Colors.tealAccent.withOpacity(0.28)
+                                      : Colors.white.withOpacity(0.08),
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 1),
+                                    child: Icon(
+                                      item.isCompleted
+                                          ? Icons.check_circle_rounded
+                                          : (item.isAuto
+                                              ? Icons.auto_awesome_rounded
+                                              : Icons.radio_button_unchecked_rounded),
+                                      size: 20,
+                                      color: item.isCompleted
+                                          ? Colors.tealAccent
+                                          : Colors.white70,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 6,
+                                          crossAxisAlignment:
+                                              WrapCrossAlignment.center,
+                                          children: [
+                                            Text(
+                                              _checklistTitle(
+                                                strings,
+                                                item,
+                                                mysteryCase,
+                                              ),
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: item.isCompleted
+                                                    ? Colors.tealAccent
+                                                    : Colors.white,
+                                              ),
+                                            ),
+                                            if (item.isAuto)
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 3,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(99),
+                                                  color: Colors.white
+                                                      .withOpacity(0.06),
+                                                  border: Border.all(
+                                                    color: Colors.white
+                                                        .withOpacity(0.1),
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  strings.tr(
+                                                    de: 'automatisch',
+                                                    en: 'automatic',
+                                                    fr: 'automatique',
+                                                    es: 'automatico',
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.white
+                                                        .withOpacity(0.72),
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                        if (_checklistDescription(
+                                              strings,
+                                              item,
+                                              mysteryCase,
+                                            ) !=
+                                            null) ...[
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            _checklistDescription(
+                                              strings,
+                                              item,
+                                              mysteryCase,
+                                            )!,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              height: 1.45,
+                                              color:
+                                                  Colors.white.withOpacity(0.68),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               SectionPanel(
                 title: strings.tr(
                   de: 'Gastzugang & QR',
@@ -346,6 +533,133 @@ class _LobbyRoomScreenState extends ConsumerState<LobbyRoomScreen> {
         ],
       ),
     );
+  }
+
+  String _checklistTitle(
+    AppStrings strings,
+    HostChecklistItem item,
+    MysteryCase mysteryCase,
+  ) {
+    switch (item.id) {
+      case 'host_intro':
+        return strings.tr(
+          de: 'Gaeste begruessen',
+          en: 'Welcome guests',
+          fr: 'Accueillir les invites',
+          es: 'Dar la bienvenida a los invitados',
+        );
+      case 'host_materials':
+        return strings.tr(
+          de: 'Material und Stimmung vorbereiten',
+          en: 'Prepare materials and atmosphere',
+          fr: 'Preparer le materiel et l ambiance',
+          es: 'Preparar materiales y ambiente',
+        );
+      case 'players_ready':
+        return strings.tr(
+          de: 'Alle ${mysteryCase.roles.length} Rollen besetzt',
+          en: 'All ${mysteryCase.roles.length} roles filled',
+          fr: '${mysteryCase.roles.length} roles attribues',
+          es: '${mysteryCase.roles.length} roles ocupados',
+        );
+      case 'roles_assigned':
+        return strings.tr(
+          de: 'Rollen verteilt',
+          en: 'Roles assigned',
+          fr: 'Roles distribues',
+          es: 'Roles asignados',
+        );
+      case 'game_started':
+        return strings.tr(
+          de: 'Spiel gestartet',
+          en: 'Game started',
+          fr: 'Partie demarree',
+          es: 'Partida iniciada',
+        );
+      case 'case_closed':
+        return strings.tr(
+          de: 'Fall abgeschlossen',
+          en: 'Case closed',
+          fr: 'Affaire resolue',
+          es: 'Caso cerrado',
+        );
+      default:
+        return item.title;
+    }
+  }
+
+  String? _checklistDescription(
+    AppStrings strings,
+    HostChecklistItem item,
+    MysteryCase mysteryCase,
+  ) {
+    switch (item.id) {
+      case 'host_intro':
+        return strings.tr(
+          de:
+              'Begruesse alle Mitspielenden und erklaere kurz, wie diese Runde ablaeuft.',
+          en:
+              'Welcome everyone and briefly explain how this round will work.',
+          fr:
+              'Accueille tout le monde et explique brievement comment la partie va se derouler.',
+          es:
+              'Da la bienvenida a todos y explica brevemente como funcionara esta partida.',
+        );
+      case 'host_materials':
+        return strings.tr(
+          de:
+              'Lege Getraenke, Licht, Musik und alle Unterlagen fuer den Abend bereit.',
+          en: 'Set up drinks, lighting, music and all materials for the night.',
+          fr:
+              'Prepare boissons, lumiere, musique et tous les documents pour la soiree.',
+          es:
+              'Prepara bebidas, iluminacion, musica y todos los materiales para la noche.',
+        );
+      case 'players_ready':
+        return strings.tr(
+          de:
+              'Dieser Punkt wird automatisch aktiv, sobald genug Leute fuer alle ${mysteryCase.roles.length} Rollen in der Lobby sind.',
+          en:
+              'This item completes automatically once enough players for all ${mysteryCase.roles.length} roles have joined the lobby.',
+          fr:
+              'Ce point se valide automatiquement quand assez de joueurs pour les ${mysteryCase.roles.length} roles sont presents dans la lobby.',
+          es:
+              'Este punto se completa automaticamente cuando haya suficientes jugadores para los ${mysteryCase.roles.length} roles en el lobby.',
+        );
+      case 'roles_assigned':
+        return strings.tr(
+          de:
+              'Die App prueft automatisch, ob alle anwesenden Spieler bereits eine Rolle haben.',
+          en:
+              'The app automatically checks whether every present player already has a role.',
+          fr:
+              'L appli verifie automatiquement si chaque joueur present a deja un role.',
+          es:
+              'La app comprueba automaticamente si cada jugador presente ya tiene un rol.',
+        );
+      case 'game_started':
+        return strings.tr(
+          de: 'Wird automatisch abgeschlossen, sobald die erste Phase startet.',
+          en:
+              'This is completed automatically as soon as the first phase starts.',
+          fr:
+              'Se termine automatiquement des que la premiere phase commence.',
+          es:
+              'Se completa automaticamente en cuanto empieza la primera fase.',
+        );
+      case 'case_closed':
+        return strings.tr(
+          de:
+              'Wird automatisch markiert, wenn die finale Aufloesung erreicht wurde.',
+          en: 'This is marked automatically once the final reveal is reached.',
+          fr:
+              'Se marque automatiquement une fois la revelation finale atteinte.',
+          es:
+              'Se marca automaticamente cuando se alcanza la revelacion final.',
+        );
+      default:
+        return item.description;
+    }
   }
 
   void _sendChat() {
@@ -1461,7 +1775,6 @@ class _ShareActionTile extends StatelessWidget {
   }
 }
 
-
 class _ChatPanel extends StatelessWidget {
   const _ChatPanel({
     required this.lobby,
@@ -1968,4 +2281,3 @@ extension _IterableFirstOrNull<T> on Iterable<T> {
     return null;
   }
 }
-
